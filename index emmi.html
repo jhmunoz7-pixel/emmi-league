@@ -1,0 +1,971 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F8F9FC">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Emmi League">
+<title>Emmi League</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#2B3FE8;
+  --blue-light:#EEF0FD;
+  --blue-mid:#C5CBFA;
+  --bg:#F8F9FC;
+  --surface:#FFFFFF;
+  --surface-2:#F2F4F8;
+  --tx:#111827;
+  --tx-2:#6B7280;
+  --tx-3:#9CA3AF;
+  --border:#E5E7EB;
+  --border-light:#F3F4F6;
+  --success:#10B981;
+  --success-bg:#ECFDF5;
+  --warning:#F59E0B;
+  --warning-bg:#FFFBEB;
+  --danger:#EF4444;
+  --danger-bg:#FEF2F2;
+  --info:#3B82F6;
+  --info-bg:#EFF6FF;
+  --shadow:0 1px 3px rgba(17,24,39,.06);
+  --shadow-lg:0 8px 28px rgba(17,24,39,.10);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--tx);
+  font-family:'Poppins',system-ui,-apple-system,sans-serif;
+  font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:0 18px 90px;padding-bottom:calc(90px + env(safe-area-inset-bottom))}
+button{font-family:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:6px}
+.hide{display:none !important}
+.num{font-variant-numeric:tabular-nums;font-weight:700}
+
+/* ---------------- header ---------------- */
+header{position:sticky;top:0;z-index:40;background:rgba(248,249,252,.92);backdrop-filter:blur(10px)}
+.hd{max-width:1080px;margin:0 auto;padding:14px 18px 10px;display:flex;align-items:center;gap:12px}
+.mark{width:40px;height:40px;border-radius:14px;background:var(--blue);display:grid;place-items:center;flex:none;box-shadow:0 4px 12px rgba(43,63,232,.28)}
+.mark svg{width:22px;height:22px;stroke:#fff}
+.hd h1{font-size:19px;font-weight:600;margin:0;line-height:1.2;letter-spacing:-.01em}
+.hd .sub{font-size:12px;color:var(--tx-3);font-weight:400}
+.hd .sp{flex:1}
+.chip{
+  display:inline-flex;align-items:center;gap:7px;background:var(--surface);
+  border:1px solid var(--border);border-radius:20px;padding:6px 13px;
+  font-size:12.5px;font-weight:500;color:var(--tx-2);box-shadow:var(--shadow);
+}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--success);flex:none}
+.dot.live{background:var(--danger);animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.82)}}
+.icobtn{
+  width:38px;height:38px;border-radius:12px;border:1px solid var(--border);
+  background:var(--surface);display:grid;place-items:center;box-shadow:var(--shadow);flex:none;
+}
+.icobtn svg{width:17px;height:17px;stroke:var(--tx-2)}
+.icobtn:hover{background:var(--blue-light);border-color:var(--blue-mid)}
+.icobtn:hover svg{stroke:var(--blue)}
+.icobtn.spin svg{animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------------- tabs ---------------- */
+.tabs{max-width:1080px;margin:0 auto;padding:0 18px 12px;display:flex;gap:7px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{
+  border:0;background:transparent;border-radius:20px;padding:8px 15px;
+  font-size:13.5px;font-weight:500;color:var(--tx-2);white-space:nowrap;
+  display:inline-flex;align-items:center;gap:7px;transition:background .18s,color .18s;
+}
+.tab svg{width:15px;height:15px;stroke:currentColor}
+.tab:hover{background:var(--surface-2);color:var(--tx)}
+.tab.on{background:var(--blue);color:#fff;box-shadow:0 4px 12px rgba(43,63,232,.25)}
+
+/* ---------------- cards ---------------- */
+.card{background:var(--surface);border-radius:18px;border:1px solid var(--border);box-shadow:var(--shadow);padding:20px 22px}
+.card.tight{padding:16px 18px}
+h2{font-size:16px;font-weight:600;margin:0 0 3px;letter-spacing:-.01em}
+.lede{font-size:12.5px;color:var(--tx-2);margin:0 0 14px;max-width:70ch;font-weight:300}
+.blk{margin-bottom:20px}
+
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:16px 18px}
+.kpi .ico{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;margin-bottom:10px}
+.kpi .ico svg{width:17px;height:17px}
+.kpi .k{font-size:11px;font-weight:500;color:var(--tx-3);letter-spacing:.02em}
+.kpi .v{font-size:27px;font-weight:700;letter-spacing:-.02em;line-height:1.25}
+.kpi .n{font-size:11.5px;color:var(--tx-3);font-weight:300}
+
+/* avatar */
+.av{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:11.5px;font-weight:600;flex:none;letter-spacing:.01em}
+.av.sm{width:26px;height:26px;font-size:10px}
+.av.lg{width:52px;height:52px;font-size:17px;border-radius:20px}
+
+/* feed rows */
+.feed{display:flex;flex-direction:column;gap:2px}
+.frow{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:14px;transition:background .16s}
+.frow:hover{background:var(--surface-2)}
+.frow .nm{flex:1;font-size:13.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.frow .pt{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.badge{border-radius:20px;padding:3px 10px;font-size:11.5px;font-weight:500;white-space:nowrap}
+.b-win{background:var(--warning-bg);color:#B45309}
+.b-pay{background:var(--danger-bg);color:var(--danger)}
+.b-blue{background:var(--blue-light);color:var(--blue)}
+.b-gray{background:var(--border-light);color:var(--tx-3)}
+.b-ok{background:var(--success-bg);color:var(--success)}
+
+/* balance rows */
+.brow{display:grid;grid-template-columns:auto 1fr 86px;align-items:center;gap:11px;padding:7px 10px;border-radius:14px;cursor:pointer;transition:background .16s}
+.brow:hover{background:var(--surface-2)}
+.bmid{display:flex;align-items:center;gap:10px;min-width:0}
+.bmid .nm{font-size:13.5px;font-weight:500;width:96px;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.track{position:relative;height:26px;flex:1;min-width:0}
+.track:before{content:"";position:absolute;left:50%;top:3px;bottom:3px;width:2px;border-radius:2px;background:var(--border)}
+.bar{position:absolute;top:6px;height:14px;border-radius:20px;transition:width .8s cubic-bezier(.22,.68,.28,1)}
+.bar.up{background:var(--success);left:50%}
+.bar.dn{background:var(--danger)}
+.brow .amt{text-align:right;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.up{color:var(--success)} .dn{color:var(--danger)}
+.rk{width:20px;text-align:center;font-size:11.5px;color:var(--tx-3);font-weight:500;flex:none}
+
+/* grid */
+.gscroll{overflow-x:auto;scrollbar-width:thin}
+table.grid{border-collapse:separate;border-spacing:0 3px;width:100%;min-width:600px}
+table.grid th{font-size:11px;font-weight:500;color:var(--tx-3);padding:0 0 8px;text-align:center}
+table.grid th.wk{cursor:pointer;border-radius:8px;transition:color .15s}
+table.grid th.wk:hover{color:var(--blue)}
+table.grid th.nmh{text-align:left}
+table.grid td{padding:0;text-align:center;vertical-align:middle}
+th.nmh,td.nmc{position:sticky;left:0;z-index:2;background:var(--surface)}
+td.nmc{text-align:left;padding-right:12px}
+.gscroll{-webkit-overflow-scrolling:touch}
+.tname{display:flex;align-items:center;gap:9px;font-size:12.5px;font-weight:500;white-space:nowrap;max-width:150px}
+.tname span{overflow:hidden;text-overflow:ellipsis}
+.cell{width:24px;height:24px;border-radius:9px;display:inline-block;transition:transform .15s;cursor:default}
+.cell:hover{transform:scale(1.28)}
+.cell.top{background:var(--warning)}
+.cell.bot{background:var(--danger)}
+.cell.mid{background:#E8EAEF}
+.cell.none{background:#F4F5F8}
+.cell.live{box-shadow:0 0 0 3px var(--blue-light)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:16px;font-size:11.5px;color:var(--tx-2);font-weight:300;align-items:center}
+.legend i{width:13px;height:13px;border-radius:5px;display:inline-block;vertical-align:-2px;margin-right:6px}
+
+/* charts */
+svg.ch{display:block;width:100%;height:auto;overflow:visible}
+.ctext{font-family:'Poppins',sans-serif;font-size:10.5px;fill:var(--tx-3);font-weight:400}
+.cnum{font-family:'Poppins',sans-serif;font-size:11.5px;fill:var(--tx);font-weight:600}
+
+/* prize cards */
+.przgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));gap:12px}
+.prz{background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:18px;position:relative;overflow:hidden}
+.prz .ico{width:36px;height:36px;border-radius:13px;display:grid;place-items:center;margin-bottom:11px}
+.prz .ico svg{width:18px;height:18px}
+.prz .k{font-size:12px;color:var(--tx-2);font-weight:400}
+.prz .v{font-size:24px;font-weight:700;letter-spacing:-.02em;margin:1px 0 10px}
+.prz .who{display:flex;align-items:center;gap:8px;padding-top:11px;border-top:1px solid var(--border-light)}
+.prz .who .t{font-size:12.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prz .who .s{font-size:11px;color:var(--tx-3);font-weight:300}
+
+/* tooltip */
+#tip{
+  position:fixed;z-index:80;background:var(--tx);color:#fff;border-radius:10px;
+  padding:7px 11px;font-size:11.5px;font-weight:400;pointer-events:none;opacity:0;
+  transition:opacity .12s;box-shadow:var(--shadow-lg);white-space:nowrap;
+}
+#tip b{font-weight:600}
+
+/* drawer */
+#scrim{position:fixed;inset:0;background:rgba(17,24,39,.32);z-index:60;opacity:0;transition:opacity .22s}
+#drawer{
+  position:fixed;z-index:70;right:0;top:0;bottom:0;width:min(400px,100%);
+  background:var(--surface);box-shadow:var(--shadow-lg);
+  transform:translateX(100%);transition:transform .28s cubic-bezier(.3,.7,.3,1);
+  overflow-y:auto;padding:22px;border-radius:22px 0 0 22px;
+}
+#drawer.on{transform:none} #scrim.on{opacity:1}
+.dhead{display:flex;align-items:center;gap:13px;margin-bottom:20px}
+.dhead .t{flex:1;min-width:0}
+.dhead h3{margin:0;font-size:17px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dhead .s{font-size:12px;color:var(--tx-3);font-weight:300}
+.dstat{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.dstat div{background:var(--surface-2);border-radius:14px;padding:12px 14px}
+.dstat .k{font-size:11px;color:var(--tx-3)}
+.dstat .v{font-size:19px;font-weight:700;letter-spacing:-.01em}
+.dline{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border-light);font-size:13px}
+.dline:last-child{border-bottom:0}
+.dline .lab{color:var(--tx-2);font-weight:300}
+.dchips{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+.wchip{
+  width:30px;height:30px;border-radius:11px;display:grid;place-items:center;
+  font-size:10.5px;font-weight:600;background:var(--surface-2);color:var(--tx-3);
+}
+.wchip.top{background:var(--warning);color:#fff}
+.wchip.bot{background:var(--danger);color:#fff}
+.wchip.mid{background:#E8EAEF;color:var(--tx-2)}
+.seclab{font-size:11px;font-weight:500;color:var(--tx-3);margin:20px 0 8px}
+
+/* setup + config */
+.setup{max-width:520px;margin:70px auto}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11.5px;color:var(--tx-2);margin-bottom:6px;font-weight:400}
+input,select{
+  font-family:inherit;font-size:14px;padding:10px 13px;border:1px solid var(--border);
+  border-radius:12px;background:var(--surface);color:var(--tx);width:100%;font-weight:500;
+}
+input:focus,select:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 3px var(--blue-light)}
+.btn{background:var(--blue);color:#fff;border:0;border-radius:12px;padding:11px 20px;font-size:14px;font-weight:500;box-shadow:0 4px 12px rgba(43,63,232,.24)}
+.btn:hover{background:#2233C4}
+.btn.ghost{background:var(--surface);border:1px solid var(--border);color:var(--tx);box-shadow:var(--shadow)}
+.btn.ghost:hover{background:var(--surface-2)}
+.btn[disabled]{opacity:.5}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.cfggrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:13px}
+.msg{border-radius:14px;padding:12px 15px;font-size:12.5px;margin-top:14px;font-weight:400}
+.msg.err{background:var(--danger-bg);color:var(--danger)}
+.msg.ok{background:var(--success-bg);color:#047857}
+.msg.warn{background:var(--warning-bg);color:#B45309}
+.muted{color:var(--tx-3);font-size:11.5px;font-weight:300}
+.demobar{background:var(--blue);color:#fff;font-size:12.5px;padding:9px 18px;text-align:center;font-weight:400}
+.demobar button{background:rgba(255,255,255,.2);border:0;color:#fff;border-radius:20px;padding:3px 12px;font-size:12px;margin-left:8px;font-weight:500}
+
+@media (max-width:760px){
+  body{font-size:13.5px}
+  .wrap{padding-left:12px;padding-right:12px}
+  .hd{padding:12px 12px 8px;gap:10px}
+  .tabs{padding:0 12px 10px}
+  .hd h1{font-size:16.5px}
+  .hd .sub{font-size:11px}
+  .mark{width:34px;height:34px;border-radius:12px}
+  .mark svg{width:18px;height:18px}
+  .chip{padding:5px 10px;font-size:11px}
+  .icobtn{width:34px;height:34px;border-radius:11px}
+  .card{padding:16px 15px;border-radius:16px}
+  h2{font-size:15px}
+  .lede{font-size:12px}
+  .kpis{grid-template-columns:1fr 1fr;gap:9px}
+  .kpi{padding:13px 14px;border-radius:16px}
+  .kpi .ico{width:30px;height:30px;border-radius:10px;margin-bottom:8px}
+  .kpi .v{font-size:21px}
+  .kpi .n{font-size:10.5px}
+  .wkcols{grid-template-columns:1fr !important;gap:4px !important}
+  .frow{padding:8px 6px;gap:9px}
+  .brow{grid-template-columns:auto 1fr 70px;padding:6px 4px;gap:8px}
+  .bmid{gap:8px}
+  .bmid .nm{width:70px;font-size:12.5px}
+  .brow .amt{font-size:13.5px}
+  .rk{width:15px;font-size:10.5px}
+  table.grid{min-width:0}
+  table.grid th{font-size:10px}
+  .cell{width:19px;height:19px;border-radius:7px}
+  .tname{max-width:88px;font-size:11.5px;gap:7px}
+  .av.sm{width:22px;height:22px;font-size:9px}
+  .przgrid{grid-template-columns:1fr 1fr;gap:9px}
+  .prz{padding:14px;border-radius:16px}
+  .prz .v{font-size:19px}
+  .prz .who .t{font-size:11.5px}
+  .cfggrid{grid-template-columns:1fr 1fr;gap:10px}
+  .dstat{gap:8px}
+  #drawer{
+    border-radius:22px 22px 0 0;top:auto;left:0;right:0;width:100%;
+    height:86dvh;transform:translateY(100%);
+    padding:14px 18px calc(24px + env(safe-area-inset-bottom));
+  }
+  #drawer.on{transform:none}
+  #drawer:before{content:"";display:block;width:38px;height:4px;border-radius:4px;background:var(--border);margin:0 auto 14px}
+}
+@media (max-width:400px){
+  .przgrid{grid-template-columns:1fr}
+  .cell{width:17px;height:17px;border-radius:6px}
+  .tname{max-width:72px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+
+<div id="demobar" class="demobar hide">Estás viendo un ejemplo con la temporada pasada<button id="exitdemo">Conectar mi liga</button></div>
+
+<header id="hdr" class="hide">
+  <div class="hd">
+    <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c4 0 8 1.5 9 3-1 6-4 11-9 15-5-4-8-9-9-15 1-1.5 5-3 9-3Z"/><path d="M9 10h6M12 7v6"/></svg></div>
+    <div>
+      <h1 id="lname">Emmi League</h1>
+      <div class="sub" id="lsub"></div>
+    </div>
+    <div class="sp"></div>
+    <span class="chip" id="wkchip"></span>
+    <button class="icobtn" id="refresh" title="Actualizar" aria-label="Actualizar"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button>
+  </div>
+  <nav class="tabs" id="tabs"></nav>
+</header>
+
+<div class="wrap">
+
+  <div id="setup" class="setup hide">
+    <div class="card" style="padding:30px;text-align:center">
+      <div class="mark" style="margin:0 auto 16px"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c4 0 8 1.5 9 3-1 6-4 11-9 15-5-4-8-9-9-15 1-1.5 5-3 9-3Z"/><path d="M9 10h6M12 7v6"/></svg></div>
+      <h2 id="stitle" style="font-size:19px">Cargando la liga…</h2>
+      <p class="lede" id="stext" style="margin:6px auto 18px">Leyendo los marcadores de Sleeper.</p>
+      <div class="row" id="sbtns" style="justify-content:center">
+        <button class="btn" id="retry">Reintentar</button>
+        <button class="btn ghost" id="trydemo">Ver ejemplo</button>
+      </div>
+    </div>
+  </div>
+
+  <main id="app" class="hide"></main>
+</div>
+
+<div id="tip"></div>
+<div id="scrim" class="hide"></div>
+<aside id="drawer" aria-hidden="true"></aside>
+
+<script>
+/* =========================================================
+   Emmi League — bolsa paralela del fantasy · datos de Sleeper
+   ========================================================= */
+const API = 'https://api.sleeper.app/v1';
+const KEY = 'emmi:config';
+
+/* Liga fija de la Emmi League — la app siempre se conecta aquí */
+const LEAGUE_ID = '1396225917369479168';
+
+const DEFAULTS = {leagueId:LEAGUE_ID, weeks:15, entry:1000, bottomFee:50, bottomCount:3, weeklyPrize:70, p1:7000, p2:2250, p3:1250, pPoints:700};
+let CFG = Object.assign({}, DEFAULTS);
+let MODEL = null, DEMO = false, TAB = 'resumen';
+
+const AVCOLORS = ['#2B3FE8','#10B981','#F59E0B','#EF4444','#3B82F6','#14B8A6','#EC4899','#F97316','#6366F1','#0EA5E9','#84CC16','#F43F5E'];
+
+const I = {
+  wallet:'<path d="M3 8a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8Z"/><path d="M16 12.5h2.5"/><path d="M3 8.5 15 5"/>',
+  coins:'<circle cx="9" cy="9" r="6"/><path d="M15.5 5.2A6 6 0 0 1 15 20.8"/><path d="M9 6.5v5M7 9h4"/>',
+  gift:'<path d="M4 11h16v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-9Z"/><path d="M3 7.5h18V11H3z"/><path d="M12 7.5V21"/><path d="M12 7.5S10.5 3 8 3.8 8.4 7.5 12 7.5Zm0 0s1.5-4.5 4-3.7-.4 3.7-4 3.7Z"/>',
+  trophy:'<path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4.5a2.5 2.5 0 0 0 2.7 2.5M17 6h2.5a2.5 2.5 0 0 1-2.7 2.5"/><path d="M12 14v4M9 20h6"/>',
+  down:'<circle cx="12" cy="12" r="9"/><path d="M12 8v7m0 0-3-3m3 3 3-3"/>',
+  up:'<circle cx="12" cy="12" r="9"/><path d="M12 16V9m0 0-3 3m3-3 3 3"/>',
+  grid2:'<rect x="3" y="3" width="7" height="7" rx="2.5"/><rect x="14" y="3" width="7" height="7" rx="2.5"/><rect x="3" y="14" width="7" height="7" rx="2.5"/><rect x="14" y="14" width="7" height="7" rx="2.5"/>',
+  chart:'<path d="M4 19h16"/><path d="M7 19v-6M12 19V6M17 19v-9"/>',
+  spark:'<path d="M4 15c3.5 0 4-9 8-9s4.5 7 8 7"/><circle cx="12" cy="6" r="1.6"/>',
+  cog:'<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v2.6M12 18.9v2.6M21.5 12h-2.6M5.1 12H2.5M18.7 5.3l-1.8 1.8M7.1 16.9l-1.8 1.8M18.7 18.7l-1.8-1.8M7.1 7.1 5.3 5.3"/>',
+  home:'<path d="M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19v-8.5Z"/><path d="M9.5 20.5V14h5v6.5"/>',
+  flag:'<path d="M5 21V4"/><path d="M5 5h11l-1.6 3.5L16 12H5"/>',
+  x:'<path d="M6 6l12 12M18 6 6 18"/>',
+  fire:'<path d="M12 3s5 4 5 9a5 5 0 0 1-10 0c0-2 1-3 1-3s0 2 1.5 2S12 6 12 3Z"/>'
+};
+const ico = (k, cls) => '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="' + (cls||'') + '">' + I[k] + '</svg>';
+
+/* ---------- utils ---------- */
+const $ = id => document.getElementById(id);
+const money = n => (n < 0 ? '-' : '') + '$' + Math.abs(Math.round(n)).toLocaleString('en-US');
+const pts = n => (Math.round(n * 100) / 100).toFixed(2);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const initials = n => { const p = String(n).replace(/[^\p{L}\p{N} ]/gu,'').trim().split(/\s+/).filter(Boolean);
+  if(!p.length) return '?';
+  return (p.length === 1 ? p[0].slice(0,2) : p[0][0] + p[1][0]).toUpperCase(); };
+const avColor = i => AVCOLORS[i % AVCOLORS.length];
+const av = (t, cls) => '<span class="av ' + (cls||'') + '" style="background:' + avColor(t.ci) + '">' + esc(initials(t.name)) + '</span>';
+
+const MOB = () => window.innerWidth < 620;
+
+async function getJSON(u){ const r = await fetch(u); if(!r.ok) throw new Error('Sleeper respondió ' + r.status); return r.json(); }
+
+async function loadConfig(){
+  try{ const r = await window.storage.get(KEY, true); if(r && r.value) CFG = Object.assign({}, DEFAULTS, JSON.parse(r.value)); }catch(e){}
+  CFG.leagueId = LEAGUE_ID;
+}
+async function saveConfig(){
+  try{ await window.storage.set(KEY, JSON.stringify(CFG), true); return true; }catch(e){ return false; }
+}
+
+/* =========================================================
+   Datos
+   ========================================================= */
+async function loadLeague(leagueId){
+  const state = await getJSON(API + '/state/nfl').catch(() => ({week:1, season:String(new Date().getFullYear())}));
+  const [league, users, rosters] = await Promise.all([
+    getJSON(API + '/league/' + leagueId),
+    getJSON(API + '/league/' + leagueId + '/users'),
+    getJSON(API + '/league/' + leagueId + '/rosters')
+  ]);
+  const byUser = {}; users.forEach(u => byUser[u.user_id] = u);
+  const teams = rosters.map(r => {
+    const u = byUser[r.owner_id] || {}, s = r.settings || {};
+    return {
+      rosterId:r.roster_id,
+      name:(u.metadata && u.metadata.team_name) || u.display_name || ('Equipo ' + r.roster_id),
+      owner:u.display_name || '', wins:s.wins||0, losses:s.losses||0, ties:s.ties||0
+    };
+  }).sort((a,b) => a.rosterId - b.rosterId);
+
+  let current = Number(state.week) || 1;
+  if(String(state.season) !== String(league.season) || league.status === 'complete') current = CFG.weeks + 1;
+
+  const upTo = Math.min(CFG.weeks, current);
+  const raw = await Promise.all(Array.from({length:upTo}, (_,i) =>
+    getJSON(API + '/league/' + leagueId + '/matchups/' + (i+1)).catch(() => [])));
+
+  const weeks = raw.map((m,i) => {
+    const rows = (m||[]).filter(x => x && x.roster_id != null)
+      .map(x => ({rosterId:x.roster_id, points:Number(x.custom_points != null ? x.custom_points : x.points) || 0}));
+    const played = rows.some(r => r.points > 0), wk = i + 1;
+    return {week:wk, rows, status: !played ? 'pending' : (wk < current ? 'final' : 'live')};
+  });
+  return buildModel({name:league.name, season:league.season, status:league.status}, teams, weeks, current);
+}
+
+function buildModel(league, teams, weeks, currentWeek){
+  const byId = {};
+  teams.forEach((t,i) => { byId[t.rosterId] = t; t.ci = i; t.tops = 0; t.bottoms = 0; t.season = 0; t.marks = {}; });
+
+  weeks.forEach(w => {
+    if(w.status === 'pending' || !w.rows.length){ w.top = []; w.bottom = []; w.cut = null; return; }
+    const sorted = w.rows.slice().sort((a,b) => b.points - a.points);
+    w.sorted = sorted;
+    const best = sorted[0].points;
+    w.top = sorted.filter(r => r.points === best).map(r => r.rosterId);
+    const nb = Math.min(CFG.bottomCount, Math.max(0, sorted.length - 1));
+    w.bottom = sorted.slice(sorted.length - nb).map(r => r.rosterId);
+    w.cut = sorted.length > nb ? sorted[sorted.length - nb - 1].points : null;
+    sorted.forEach((r, idx) => {
+      const t = byId[r.rosterId]; if(!t) return;
+      t.season += r.points;
+      const isTop = w.top.indexOf(r.rosterId) > -1, isBot = w.bottom.indexOf(r.rosterId) > -1;
+      t.marks[w.week] = {kind: isTop ? 'top' : (isBot ? 'bot' : 'mid'), points:r.points, rank:idx+1, live:w.status === 'live'};
+      if(w.status === 'final'){ if(isTop) t.tops++; if(isBot) t.bottoms++; }
+    });
+  });
+
+  teams.forEach(t => {
+    t.won = t.tops * CFG.weeklyPrize;
+    t.paid = t.bottoms * CFG.bottomFee;
+    t.balance = -CFG.entry + t.won - t.paid;
+  });
+
+  const finals = weeks.filter(w => w.status === 'final').length;
+  const collectedEntries = teams.length * CFG.entry;
+  const collectedFees = teams.reduce((s,t) => s + t.paid, 0);
+  const paidWeekly = teams.reduce((s,t) => s + t.won, 0);
+  const projFees = CFG.weeks * CFG.bottomCount * CFG.bottomFee;
+  const projWeekly = CFG.weeks * CFG.weeklyPrize;
+
+  return {
+    league, teams, weeks, currentWeek, finals,
+    collectedEntries, collectedFees, paidWeekly, projWeekly,
+    projPot: collectedEntries + projFees,
+    projPrizes: CFG.p1 + CFG.p2 + CFG.p3 + CFG.pPoints + projWeekly,
+    standings: teams.slice().sort((a,b) => (b.wins - a.wins) || (b.season - a.season)),
+    byPoints: teams.slice().sort((a,b) => b.season - a.season),
+    byBalance: teams.slice().sort((a,b) => b.balance - a.balance),
+    lastWeek: weeks.filter(w => w.status !== 'pending').slice(-1)[0] || null
+  };
+}
+
+/* =========================================================
+   Render
+   ========================================================= */
+const TABS = [
+  ['resumen','Resumen','home'],
+  ['semanas','Semanas','grid2'],
+  ['puntos','Puntos','chart'],
+  ['premios','Premios','gift'],
+  ['reglas','Reglas','cog']
+];
+
+function render(){
+  const m = MODEL; if(!m) return;
+  $('setup').classList.add('hide');
+  $('app').classList.remove('hide');
+  $('hdr').classList.remove('hide');
+
+  $('lname').textContent = m.league.name || 'Emmi League';
+  $('lsub').textContent = 'Temporada ' + m.league.season + ' · ' + m.teams.length + ' equipos';
+
+  const live = m.lastWeek && m.lastWeek.status === 'live';
+  $('wkchip').innerHTML = '<span class="dot ' + (live ? 'live' : '') + '"></span>' +
+    (m.finals >= CFG.weeks ? 'Cerrada' : live ? ('Semana ' + m.lastWeek.week + ' en vivo') : ('Semana ' + (m.finals + 1) + ' por jugar'));
+
+  $('tabs').innerHTML = TABS.map(t =>
+    '<button class="tab ' + (TAB === t[0] ? 'on' : '') + '" data-tab="' + t[0] + '">' + ico(t[2]) + t[1] + '</button>').join('');
+  $('tabs').querySelectorAll('.tab').forEach(b => b.onclick = () => { TAB = b.dataset.tab; render(); });
+
+  $('app').innerHTML = ({resumen:viewResumen, semanas:viewSemanas, puntos:viewPuntos, premios:viewPremios, reglas:viewReglas})[TAB](m);
+  wireUp(m);
+}
+
+/* ---------- resumen ---------- */
+function viewResumen(m){
+  const collected = m.collectedEntries + m.collectedFees;
+  const kpi = (icoK, color, bg, k, v, n) =>
+    '<div class="kpi"><div class="ico" style="background:' + bg + '">' + ico(icoK).replace('<svg ','<svg style="stroke:' + color + '" ') + '</div>' +
+    '<div class="k">' + k + '</div><div class="v">' + v + '</div><div class="n">' + n + '</div></div>';
+
+  let h = '<div class="blk"><div class="kpis">' +
+    kpi('wallet','var(--blue)','var(--blue-light)','Recaudado', money(collected), m.teams.length + ' inscripciones + multas') +
+    kpi('down','var(--danger)','var(--danger-bg)','Multas cobradas', money(m.collectedFees), m.finals + ' semanas cerradas') +
+    kpi('trophy','var(--warning)','var(--warning-bg)','Premios de semana', money(m.paidWeekly), 'de ' + money(m.projWeekly) + ' del año') +
+    kpi('gift','var(--success)','var(--success-bg)','Por repartir', money(m.projPot - m.paidWeekly), 'al cierre de temporada') +
+    '</div></div>';
+
+  h += '<div class="blk">' + weekCard(m) + '</div>';
+
+  h += '<div class="card blk"><h2>Quién va ganando y quién va pagando</h2>' +
+    '<p class="lede">Inscripción de ' + money(CFG.entry) + ', menos ' + money(CFG.bottomFee) + ' por cada semana en el fondo, más ' + money(CFG.weeklyPrize) + ' por cada semana ganada. Toca a cualquiera para ver su detalle.</p>' +
+    balanceRows(m) + '</div>';
+  return h;
+}
+
+function weekCard(m){
+  const w = m.lastWeek;
+  if(!w || w.status === 'pending'){
+    return '<div class="card"><h2>Esta semana</h2><p class="lede" style="margin:0">Todavía no hay puntajes. Aparece en cuanto arranquen los partidos.</p></div>';
+  }
+  const byId = {}; m.teams.forEach(t => byId[t.rosterId] = t);
+  const live = w.status === 'live';
+  const row = (r, badge, cls) => {
+    const t = byId[r.rosterId] || {name:'—', ci:0};
+    return '<div class="frow" data-team="' + r.rosterId + '">' + av(t) +
+      '<span class="nm">' + esc(t.name) + '</span>' +
+      (badge ? '<span class="badge ' + cls + '">' + badge + '</span>' : '') +
+      '<span class="pt">' + pts(r.points) + '</span></div>';
+  };
+  const win = w.sorted[0];
+  const rest = w.sorted.slice(1, 3);
+  const bot = w.sorted.slice(-CFG.bottomCount);
+
+  return '<div class="card">' +
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">' +
+      '<h2 style="margin:0">Semana ' + w.week + '</h2>' +
+      (live ? '<span class="badge b-pay"><span class="dot live" style="display:inline-block;margin-right:5px"></span>en vivo</span>'
+            : '<span class="badge b-ok">cerrada</span>') + '</div>' +
+    '<p class="lede">' + (live
+      ? 'Los partidos siguen corriendo. Nada cuenta para el dinero hasta que cierre la semana.'
+      : 'El primero cobró ' + money(CFG.weeklyPrize) + ' y los últimos ' + CFG.bottomCount + ' pusieron ' + money(CFG.bottomFee) + ' cada uno.') + '</p>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px" class="wkcols">' +
+      '<div><div class="seclab" style="margin-top:0">' + (live ? 'VA GANANDO' : 'GANÓ LA SEMANA') + '</div><div class="feed">' +
+        row(win, '+' + money(CFG.weeklyPrize), 'b-win') + rest.map(r => row(r)).join('') + '</div></div>' +
+      '<div><div class="seclab" style="margin-top:0">' + (live ? 'VAN EN EL FONDO' : 'PAGARON') + '</div><div class="feed">' +
+        bot.map(r => row(r, '-' + money(CFG.bottomFee), 'b-pay')).join('') + '</div></div>' +
+    '</div></div>';
+}
+
+function balanceRows(m){
+  const rows = m.byBalance;
+  const max = Math.max(CFG.entry, ...rows.map(r => Math.abs(r.balance)));
+  return '<div class="feed">' + rows.map((t,i) => {
+    const w = (Math.abs(t.balance) / max) * 50, up = t.balance >= 0;
+    const bar = up ? '<div class="bar up" style="width:' + w.toFixed(1) + '%"></div>'
+                   : '<div class="bar dn" style="left:' + (50 - w).toFixed(1) + '%;width:' + w.toFixed(1) + '%"></div>';
+    return '<div class="brow" data-team="' + t.rosterId + '" role="button" tabindex="0">' +
+      '<span class="rk">' + (i+1) + '</span>' +
+      '<div class="bmid">' + av(t, 'sm') + '<span class="nm">' + esc(t.name) + '</span><div class="track">' + bar + '</div></div>' +
+      '<span class="amt ' + (up ? 'up' : 'dn') + '">' + money(t.balance) + '</span></div>';
+  }).join('') + '</div>';
+}
+
+/* ---------- semanas ---------- */
+function viewSemanas(m){
+  let head = '<tr><th class="nmh">Equipo</th>';
+  for(let w = 1; w <= CFG.weeks; w++) head += '<th class="wk" data-week="' + w + '">' + w + '</th>';
+  head += '<th style="text-align:right">Neto</th></tr>';
+
+  const body = m.byBalance.map(t => {
+    let tds = '<td class="nmc"><div class="tname">' + av(t,'sm') + '<span>' + esc(t.name) + '</span></div></td>';
+    for(let w = 1; w <= CFG.weeks; w++){
+      const mk = t.marks[w];
+      const lbl = mk ? (esc(t.name) + ' · S' + w + ' · <b>' + pts(mk.points) + '</b> pts · lugar ' + mk.rank) : ('Semana ' + w + ' sin jugar');
+      tds += '<td><span class="cell ' + (mk ? mk.kind : 'none') + (mk && mk.live ? ' live' : '') + '" data-tip="' + lbl + '"></span></td>';
+    }
+    const net = t.won - t.paid;
+    tds += '<td style="text-align:right;padding-left:10px"><span class="amt ' + (net >= 0 ? 'up' : 'dn') + '" style="font-size:13.5px;font-weight:700">' + money(net) + '</span></td>';
+    return '<tr data-team="' + t.rosterId + '" style="cursor:pointer">' + tds + '</tr>';
+  }).join('');
+
+  return '<div class="card blk"><h2>Semana por semana</h2>' +
+    '<p class="lede">Cada columna es una semana. Ámbar es el mejor puntaje, rojo son los tres que pagaron. Toca una columna para ver esa semana completa, o una fila para ver a ese equipo.</p>' +
+    '<div class="gscroll"><table class="grid">' + head + body + '</table></div>' +
+    '<div class="legend">' +
+      '<span><i style="background:var(--warning)"></i>Mejor puntaje</span>' +
+      '<span><i style="background:var(--danger)"></i>Fondo ' + CFG.bottomCount + '</span>' +
+      '<span><i style="background:#E8EAEF"></i>Semana jugada</span>' +
+      '<span><i style="background:#F4F5F8"></i>Sin jugar</span>' +
+    '</div></div>' +
+    '<div class="card"><h2>Cuánto hay que anotar</h2>' +
+    '<p class="lede">Las barras son el puntaje que ganó cada semana. La línea roja es el del último que se salvó del fondo: por debajo de ahí, pagas.</p>' +
+    cutChart(m) + '</div>';
+}
+
+/* ---------- puntos ---------- */
+function viewPuntos(m){
+  const rows = m.byPoints.filter(t => t.season > 0);
+  if(!rows.length) return '<div class="card"><h2>Puntos de la temporada</h2><p class="lede" style="margin:0">Aparece cuando se juegue la primera semana.</p></div>';
+  const leader = rows[0];
+
+  const mob = MOB();
+  const W = mob ? 360 : 640, H = mob ? 26 : 30, GAP = mob ? 7 : 9;
+  const L = mob ? 102 : 132, R = mob ? 52 : 66, T = 4;
+  const NX = L - (mob ? 31 : 40), CX = L - (mob ? 15 : 18), CR = mob ? 9 : 11;
+  const h = rows.length * (H + GAP) + T;
+  const max = rows[0].season * 1.02;
+  let s = '<svg class="ch" viewBox="0 0 ' + W + ' ' + h + '" role="img" aria-label="Puntos acumulados">';
+  rows.forEach((t,i) => {
+    const y = T + i * (H + GAP), bw = ((W - L - R) * t.season) / max;
+    s += '<text class="cnum" x="' + NX + '" y="' + (y + H/2 + 4) + '" text-anchor="end" style="font-weight:500;fill:var(--tx)">' + esc(t.name) + '</text>';
+    s += '<circle cx="' + CX + '" cy="' + (y + H/2) + '" r="' + CR + '" fill="' + avColor(t.ci) + '"/>';
+    s += '<text x="' + CX + '" y="' + (y + H/2 + 3.5) + '" text-anchor="middle" style="font-family:Poppins;font-size:9px;font-weight:600;fill:#fff">' + esc(initials(t.name)) + '</text>';
+    s += '<rect x="' + L + '" y="' + y + '" width="' + bw.toFixed(1) + '" height="' + H + '" rx="' + (H/2) + '" fill="' + (i === 0 ? 'var(--warning)' : 'var(--blue)') + '" opacity="' + (i === 0 ? 1 : (0.9 - i*0.055).toFixed(2)) + '"/>';
+    s += '<text class="cnum" x="' + (L + bw + 8) + '" y="' + (y + H/2 + 4) + '">' + pts(t.season) + '</text>';
+  });
+  s += '</svg>';
+
+  return '<div class="card blk"><h2>Puntos acumulados de la temporada</h2>' +
+    '<p class="lede">Suma de los puntos de cada semana. Quien termine más arriba se lleva ' + money(CFG.pPoints) + '. Hoy va ' + esc(leader.name) + '.</p>' + s + '</div>' +
+    '<div class="card"><h2>Cómo se mueve cada equipo</h2>' +
+    '<p class="lede">Puntos semana a semana. La línea gruesa es el líder de puntos, las demás quedan de fondo para comparar.</p>' +
+    linesChart(m) + '</div>';
+}
+
+function linesChart(m){
+  const ws = m.weeks.filter(w => w.sorted);
+  if(ws.length < 2) return '<p class="muted">Se necesitan al menos dos semanas jugadas.</p>';
+  const mob = MOB();
+  const W = mob ? 360 : 640, H = mob ? 200 : 250, L = mob ? 27 : 34, R = mob ? 10 : 14, T = 12, B = 26;
+  const all = ws.flatMap(w => w.sorted.map(r => r.points));
+  const lo = Math.min(...all) * 0.9, hi = Math.max(...all) * 1.04;
+  const iw = W - L - R, ih = H - T - B;
+  const x = i => L + (ws.length === 1 ? iw/2 : (iw * i) / (ws.length - 1));
+  const y = v => T + ih - ((v - lo) / (hi - lo)) * ih;
+  const smooth = p => {
+    if(p.length < 2) return '';
+    let d = 'M' + p[0][0] + ',' + p[0][1];
+    for(let i = 0; i < p.length - 1; i++){
+      const p0 = p[i-1] || p[i], p1 = p[i], p2 = p[i+1], p3 = p[i+2] || p2;
+      d += ' C' + (p1[0] + (p2[0]-p0[0])/6).toFixed(1) + ',' + (p1[1] + (p2[1]-p0[1])/6).toFixed(1) +
+           ' ' + (p2[0] - (p3[0]-p1[0])/6).toFixed(1) + ',' + (p2[1] - (p3[1]-p1[1])/6).toFixed(1) +
+           ' ' + p2[0].toFixed(1) + ',' + p2[1].toFixed(1);
+    }
+    return d;
+  };
+  let s = '<svg class="ch" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Puntos por semana de cada equipo">';
+  for(let g = 0; g <= 3; g++){
+    const v = lo + ((hi - lo) / 3) * g, yy = y(v);
+    s += '<line x1="' + L + '" x2="' + (W-R) + '" y1="' + yy.toFixed(1) + '" y2="' + yy.toFixed(1) + '" stroke="var(--border-light)" stroke-width="1"/>';
+    s += '<text class="ctext" x="' + (L-8) + '" y="' + (yy+3.5).toFixed(1) + '" text-anchor="end">' + Math.round(v) + '</text>';
+  }
+  const lead = m.byPoints[0];
+  m.teams.forEach(t => {
+    const p = ws.map((w,i) => { const r = w.sorted.find(r => r.rosterId === t.rosterId); return r ? [x(i), y(r.points)] : null; }).filter(Boolean);
+    if(p.length < 2) return;
+    const isLead = t.rosterId === lead.rosterId;
+    s += '<path d="' + smooth(p) + '" fill="none" stroke="' + (isLead ? avColor(t.ci) : '#D9DDE6') + '" stroke-width="' + (isLead ? 3 : 1.5) + '" stroke-linecap="round" opacity="' + (isLead ? 1 : .75) + '"/>';
+    if(isLead) p.forEach(q => { s += '<circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="3.5" fill="' + avColor(t.ci) + '"/>'; });
+  });
+  ws.forEach((w,i) => {
+    if(mob && ws.length > 8 && i % 2) return;
+    s += '<text class="ctext" x="' + x(i).toFixed(1) + '" y="' + (H-8) + '" text-anchor="middle">' + w.week + '</text>';
+  });
+  s += '</svg>';
+  s += '<div class="frow" style="margin-top:8px;padding-left:0">' + av(lead,'sm') + '<span class="nm">' + esc(lead.name) + '</span><span class="badge b-blue">líder con ' + pts(lead.season) + ' pts</span></div>';
+  return s;
+}
+
+function cutChart(m){
+  const ws = m.weeks.filter(w => w.sorted);
+  if(!ws.length) return '<p class="muted">Sin semanas jugadas todavía.</p>';
+  const mob = MOB();
+  const W = mob ? 360 : 640, H = mob ? 190 : 220, L = mob ? 27 : 34, R = mob ? 8 : 12, T = 14, B = 26;
+  const max = Math.max(...ws.map(w => w.sorted[0].points)) * 1.12;
+  const iw = W - L - R, ih = H - T - B, step = iw / CFG.weeks;
+  const bw = Math.min(mob ? 14 : 24, step * 0.58);
+  const x = i => L + step * i + (step - bw) / 2;
+  const y = v => T + ih - (v / max) * ih;
+
+  let s = '<svg class="ch" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Puntaje ganador y corte del fondo">';
+  for(let g = 0; g <= 3; g++){
+    const v = (max/3)*g, yy = y(v);
+    s += '<line x1="' + L + '" x2="' + (W-R) + '" y1="' + yy.toFixed(1) + '" y2="' + yy.toFixed(1) + '" stroke="var(--border-light)" stroke-width="1"/>';
+    s += '<text class="ctext" x="' + (L-8) + '" y="' + (yy+3.5).toFixed(1) + '" text-anchor="end">' + Math.round(v) + '</text>';
+  }
+  ws.forEach((w,i) => {
+    const v = w.sorted[0].points, yy = y(v);
+    s += '<rect x="' + x(i).toFixed(1) + '" y="' + yy.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + (T + ih - yy).toFixed(1) + '" rx="' + (bw/2).toFixed(1) + '" fill="var(--warning)" opacity="' + (w.status === 'live' ? .4 : .95) + '"/>';
+  });
+  const cp = ws.filter(w => w.cut != null);
+  if(cp.length > 1){
+    s += '<polyline points="' + cp.map(w => (x(ws.indexOf(w)) + bw/2).toFixed(1) + ',' + y(w.cut).toFixed(1)).join(' ') +
+         '" fill="none" stroke="var(--danger)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+    cp.forEach(w => { s += '<circle cx="' + (x(ws.indexOf(w)) + bw/2).toFixed(1) + '" cy="' + y(w.cut).toFixed(1) + '" r="3.5" fill="var(--danger)"/>'; });
+  }
+  for(let i = 0; i < CFG.weeks; i++){
+    if(mob && CFG.weeks > 8 && i % 2) continue;
+    s += '<text class="ctext" x="' + (x(i)+bw/2).toFixed(1) + '" y="' + (H-8) + '" text-anchor="middle">' + (i+1) + '</text>';
+  }
+  s += '</svg>';
+
+  const avgTop = ws.reduce((a,w) => a + w.sorted[0].points, 0) / ws.length;
+  const avgCut = cp.length ? cp.reduce((a,w) => a + w.cut, 0) / cp.length : null;
+  s += '<div class="row" style="margin-top:12px">' +
+    '<span class="badge b-win">ganar pide ~' + pts(avgTop) + ' pts</span>' +
+    (avgCut ? '<span class="badge b-pay">salvarse pide ~' + pts(avgCut) + ' pts</span>' : '') + '</div>';
+  return s;
+}
+
+/* ---------- premios ---------- */
+function viewPremios(m){
+  const st = m.standings, bp = m.byPoints;
+  const card = (icoK, color, bg, k, v, t, sub) =>
+    '<div class="prz"><div class="ico" style="background:' + bg + '">' + ico(icoK).replace('<svg ','<svg style="stroke:' + color + '" ') + '</div>' +
+    '<div class="k">' + k + '</div><div class="v">' + v + '</div>' +
+    '<div class="who">' + (t ? av(t,'sm') : '<span class="av sm" style="background:var(--border)">?</span>') +
+    '<div style="min-width:0"><div class="t">' + (t ? esc(t.name) : 'por definir') + '</div><div class="s">' + sub + '</div></div></div></div>';
+
+  const rec = t => t ? (t.wins + '-' + t.losses + (t.ties ? '-' + t.ties : '')) : '';
+  let h = '<div class="card blk"><h2>Premios de fin de temporada</h2>' +
+    '<p class="lede">Los tres primeros lugares se deciden en playoffs, así que esto es la proyección por récord de hoy. El de más puntos sí va con el acumulado real.</p></div>';
+
+  h += '<div class="przgrid blk">' +
+    card('trophy','var(--warning)','var(--warning-bg)','Primer lugar', money(CFG.p1), st[0], st[0] ? 'récord ' + rec(st[0]) : 'sin partidos') +
+    card('trophy','var(--tx-3)','var(--border-light)','Segundo lugar', money(CFG.p2), st[1], st[1] ? 'récord ' + rec(st[1]) : '') +
+    card('trophy','#B45309','var(--warning-bg)','Tercer lugar', money(CFG.p3), st[2], st[2] ? 'récord ' + rec(st[2]) : '') +
+    card('fire','var(--blue)','var(--blue-light)','Más puntos del año', money(CFG.pPoints), bp[0] && bp[0].season > 0 ? bp[0] : null, bp[0] && bp[0].season > 0 ? pts(bp[0].season) + ' puntos' : 'sin puntos aún') +
+    '</div>';
+
+  const topper = m.teams.slice().sort((a,b) => b.tops - a.tops)[0];
+  h += '<div class="card blk"><h2>Premio semanal</h2>' +
+    '<p class="lede">' + money(CFG.weeklyPrize) + ' cada semana, ' + money(m.projWeekly) + ' en total por las ' + CFG.weeks + ' semanas.</p>' +
+    '<div class="dstat" style="grid-template-columns:repeat(3,1fr);margin:0">' +
+      '<div><div class="k">Ya pagados</div><div class="v">' + money(m.paidWeekly) + '</div></div>' +
+      '<div><div class="k">Por pagar</div><div class="v">' + money(m.projWeekly - m.paidWeekly) + '</div></div>' +
+      '<div><div class="k">Más semanas ganadas</div><div class="v" style="font-size:15px;padding-top:3px">' + (topper && topper.tops ? esc(topper.name) + ' · ' + topper.tops : '—') + '</div></div>' +
+    '</div></div>';
+
+  const diff = m.projPot - m.projPrizes;
+  h += '<div class="card"><h2>Cuadre de la bolsa</h2>' +
+    '<p class="lede">Lo que entra en toda la temporada contra lo que está comprometido en premios.</p>' +
+    '<div class="dline"><span class="lab">Inscripciones · ' + m.teams.length + ' × ' + money(CFG.entry) + '</span><span class="num">' + money(m.collectedEntries) + '</span></div>' +
+    '<div class="dline"><span class="lab">Multas · ' + CFG.bottomCount + ' × ' + money(CFG.bottomFee) + ' × ' + CFG.weeks + ' semanas</span><span class="num">' + money(CFG.weeks * CFG.bottomCount * CFG.bottomFee) + '</span></div>' +
+    '<div class="dline"><span class="lab" style="font-weight:500;color:var(--tx)">Bolsa total</span><span class="num">' + money(m.projPot) + '</span></div>' +
+    '<div class="dline"><span class="lab">Premios comprometidos</span><span class="num">' + money(m.projPrizes) + '</span></div>' +
+    '<div class="msg ' + (diff === 0 ? 'ok' : diff > 0 ? 'warn' : 'err') + '">' +
+      (diff === 0 ? 'Cuadra exacto: la bolsa alcanza justo para todos los premios.'
+        : diff > 0 ? 'Sobran ' + money(diff) + ' al final de la temporada.'
+        : 'Faltan ' + money(-diff) + ' para cubrir los premios. Baja algún premio o sube la multa.') +
+    '</div></div>';
+  return h;
+}
+
+/* ---------- reglas ---------- */
+const CFGFIELDS = [
+  ['entry','Inscripción por jugador'], ['bottomFee','Multa del fondo'], ['bottomCount','Cuántos pagan por semana'],
+  ['weeklyPrize','Premio al mejor de la semana'], ['weeks','Semanas en juego'],
+  ['p1','Primer lugar'], ['p2','Segundo lugar'], ['p3','Tercer lugar'], ['pPoints','Más puntos del año']
+];
+function viewReglas(){
+  return '<div class="card blk"><h2>Reglas y montos</h2>' +
+    '<p class="lede">Lo que cambies aquí se guarda para todos los que abran esta página.</p>' +
+    '<div class="cfggrid">' + CFGFIELDS.map(f =>
+      '<div class="field" style="margin:0"><label for="cf-' + f[0] + '">' + f[1] + '</label><input type="number" id="cf-' + f[0] + '" value="' + CFG[f[0]] + '" min="0"></div>').join('') +
+    '</div><div class="row" style="margin-top:18px"><button class="btn" id="savecfg">Guardar cambios</button></div><div id="cfgmsg"></div></div>' +
+    '<div class="card"><h2>De dónde salen los datos</h2>' +
+    '<p class="lede" style="margin:0">Los puntajes se leen de Sleeper cada vez que abres o actualizas. Una semana cuenta para el dinero hasta que termina, así que el marcador en vivo no mueve saldos. Si el comisionado ajusta puntos a mano en Sleeper, esos ajustes sí se respetan.</p></div>';
+}
+
+/* =========================================================
+   Interacción
+   ========================================================= */
+function wireUp(m){
+  document.querySelectorAll('[data-team]').forEach(el => {
+    el.onclick = () => openTeam(m, Number(el.dataset.team));
+    el.onkeydown = e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openTeam(m, Number(el.dataset.team)); } };
+  });
+  document.querySelectorAll('th.wk').forEach(el => el.onclick = () => openWeek(m, Number(el.dataset.week)));
+  document.querySelectorAll('[data-tip]').forEach(el => {
+    el.onmouseenter = e => showTip(e.currentTarget.dataset.tip, e.currentTarget);
+    el.onmouseleave = hideTip;
+    el.addEventListener('touchstart', e => {
+      e.stopPropagation();
+      showTip(e.currentTarget.dataset.tip, e.currentTarget);
+      clearTimeout(showTip.t);
+      showTip.t = setTimeout(hideTip, 2200);
+    }, {passive:true});
+  });
+  const sc = $('savecfg');
+  if(sc) sc.onclick = onSave;
+}
+
+function showTip(html, el){
+  const t = $('tip'), r = el.getBoundingClientRect();
+  t.innerHTML = html;
+  t.style.opacity = 1;
+  const w = t.offsetWidth;
+  t.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width/2 - w/2)) + 'px';
+  t.style.top = (r.top - t.offsetHeight - 8) + 'px';
+}
+const hideTip = () => { $('tip').style.opacity = 0; };
+
+function openDrawer(html){
+  $('drawer').innerHTML = html;
+  $('drawer').setAttribute('aria-hidden','false');
+  $('scrim').classList.remove('hide');
+  requestAnimationFrame(() => { $('drawer').classList.add('on'); $('scrim').classList.add('on'); });
+  const x = $('dclose'); if(x) x.onclick = closeDrawer;
+}
+function closeDrawer(){
+  $('drawer').classList.remove('on');
+  $('scrim').classList.remove('on');
+  $('drawer').setAttribute('aria-hidden','true');
+  setTimeout(() => $('scrim').classList.add('hide'), 240);
+}
+$('scrim').onclick = closeDrawer;
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeDrawer(); });
+
+function openTeam(m, rosterId){
+  const t = m.teams.find(x => x.rosterId === rosterId); if(!t) return;
+  const rankBal = m.byBalance.indexOf(t) + 1, rankPts = m.byPoints.indexOf(t) + 1;
+  let chips = '';
+  for(let w = 1; w <= CFG.weeks; w++){
+    const mk = t.marks[w];
+    chips += '<span class="wchip ' + (mk ? mk.kind : '') + '" title="' + (mk ? pts(mk.points) + ' pts' : 'sin jugar') + '">' + w + '</span>';
+  }
+  openDrawer(
+    '<div class="dhead">' + av(t,'lg') + '<div class="t"><h3>' + esc(t.name) + '</h3>' +
+      '<div class="s">' + (t.owner ? esc(t.owner) + ' · ' : '') + t.wins + '-' + t.losses + '</div></div>' +
+      '<button class="icobtn" id="dclose" aria-label="Cerrar">' + ico('x').replace('<svg ','<svg style="stroke:var(--tx-2)" ') + '</button></div>' +
+    '<div class="dstat">' +
+      '<div><div class="k">Balance</div><div class="v ' + (t.balance >= 0 ? 'up' : 'dn') + '">' + money(t.balance) + '</div></div>' +
+      '<div><div class="k">Puntos del año</div><div class="v">' + pts(t.season) + '</div></div>' +
+    '</div>' +
+    '<div class="dline"><span class="lab">Inscripción</span><span class="num dn">' + money(-CFG.entry) + '</span></div>' +
+    '<div class="dline"><span class="lab">Semanas ganadas · ' + t.tops + '</span><span class="num up">' + money(t.won) + '</span></div>' +
+    '<div class="dline"><span class="lab">Semanas en el fondo · ' + t.bottoms + '</span><span class="num dn">' + money(-t.paid) + '</span></div>' +
+    '<div class="dline"><span class="lab" style="font-weight:500;color:var(--tx)">Balance hoy</span><span class="num ' + (t.balance >= 0 ? 'up' : 'dn') + '">' + money(t.balance) + '</span></div>' +
+    '<div class="row" style="margin-top:14px">' +
+      '<span class="badge b-blue">lugar ' + rankBal + ' en dinero</span>' +
+      '<span class="badge b-gray">lugar ' + rankPts + ' en puntos</span></div>' +
+    '<div class="seclab">SEMANA POR SEMANA</div><div class="dchips">' + chips + '</div>' +
+    '<p class="muted" style="margin-top:14px">Ámbar es semana ganada, rojo es semana en el fondo.</p>'
+  );
+}
+
+function openWeek(m, week){
+  const w = m.weeks.find(x => x.week === week);
+  const byId = {}; m.teams.forEach(t => byId[t.rosterId] = t);
+  const head = '<div class="dhead"><div class="t"><h3>Semana ' + week + '</h3><div class="s">' +
+    (!w || !w.sorted ? 'sin jugar' : w.status === 'live' ? 'en vivo' : 'cerrada') + '</div></div>' +
+    '<button class="icobtn" id="dclose" aria-label="Cerrar">' + ico('x').replace('<svg ','<svg style="stroke:var(--tx-2)" ') + '</button></div>';
+  if(!w || !w.sorted){ openDrawer(head + '<p class="muted">Esta semana todavía no se juega.</p>'); return; }
+
+  const n = w.sorted.length;
+  const rows = w.sorted.map((r,i) => {
+    const t = byId[r.rosterId] || {name:'—', ci:0};
+    const isTop = i === 0, isBot = i >= n - CFG.bottomCount;
+    return '<div class="frow">' + '<span class="rk">' + (i+1) + '</span>' + av(t,'sm') +
+      '<span class="nm">' + esc(t.name) + '</span>' +
+      (isTop ? '<span class="badge b-win">+' + money(CFG.weeklyPrize) + '</span>' :
+       isBot ? '<span class="badge b-pay">-' + money(CFG.bottomFee) + '</span>' : '') +
+      '<span class="pt">' + pts(r.points) + '</span></div>';
+  }).join('');
+  openDrawer(head +
+    '<div class="dstat"><div><div class="k">Puntaje ganador</div><div class="v">' + pts(w.sorted[0].points) + '</div></div>' +
+    '<div><div class="k">Corte del fondo</div><div class="v">' + (w.cut != null ? pts(w.cut) : '—') + '</div></div></div>' +
+    '<div class="feed">' + rows + '</div>');
+}
+
+/* =========================================================
+   Ejemplo
+   ========================================================= */
+const DEMO_NAMES = ['Jh','El Jaguar','GSM','Cantaranas','RGM','Don Charles','Reza','Bailador','Campeador','Romo'];
+const DEMO_MARKS = {
+  'Jh':{2:'T',5:'T',7:'T',8:'T',10:'B',12:'B'},
+  'El Jaguar':{3:'B',9:'T',10:'T',11:'T'},
+  'GSM':{4:'T',9:'B',11:'B',12:'B',13:'T'},
+  'Cantaranas':{3:'T',4:'B',6:'T',12:'T',14:'B'},
+  'RGM':{1:'B',4:'B',6:'B',8:'B',10:'B',11:'B',14:'B',15:'B'},
+  'Don Charles':{1:'B',2:'B',5:'B',8:'B',11:'B',12:'B',13:'B',15:'T'},
+  'Reza':{4:'B',6:'B',8:'B',13:'B'},
+  'Bailador':{3:'B',4:'B',6:'B',7:'B',8:'B',10:'B',15:'B'},
+  'Campeador':{1:'T',2:'B',3:'B',8:'B',11:'B',14:'B',15:'B'},
+  'Romo':{1:'B',7:'B',9:'B',10:'B',13:'B',14:'T'}
+};
+const DEMO_MAX = [137.92,150.12,148.02,162.30,159.72,160.60,158.38,162.52,132.50,159.30,141.44,150.52,146.94,151.74,164.94];
+
+function demoModel(){
+  const teams = DEMO_NAMES.map((n,i) => ({rosterId:i+1, name:n, owner:'', wins:0, losses:0, ties:0}));
+  const idx = {}; DEMO_NAMES.forEach((n,i) => idx[n] = i+1);
+  const spread = [0,5.4,8.1,11.7,14.9,18.2,21.6,25.3,33.8,41.2];
+  const weeks = DEMO_MAX.map((max, wi) => {
+    const w = wi + 1, tops = [], bots = [], mids = [];
+    DEMO_NAMES.forEach(n => { const k = DEMO_MARKS[n][w]; if(k === 'T') tops.push(n); else if(k === 'B') bots.push(n); else mids.push(n); });
+    while(tops.length < 1) tops.push(mids.shift());
+    while(bots.length < 3) bots.push(mids.pop());
+    const order = tops.concat(mids, bots);
+    return {week:w, status:'final', rows: order.map((n,i) => ({
+      rosterId: idx[n],
+      points: Math.max(50, max - spread[Math.min(i, spread.length-1)] - ((w*37 + i*53) % 17)/10)
+    }))};
+  });
+  const tot = {}; weeks.forEach(w => w.rows.forEach(r => tot[r.rosterId] = (tot[r.rosterId]||0) + r.points));
+  teams.slice().sort((a,b) => tot[b.rosterId] - tot[a.rosterId]).forEach((t,i) => { t.wins = 11 - i; t.losses = 15 - t.wins; });
+  return buildModel({name:'Emmi League', season:'2025', status:'complete'}, teams, weeks, 16);
+}
+
+/* =========================================================
+   Arranque — siempre contra la liga fija
+   ========================================================= */
+function showState(title, text, retry){
+  $('stitle').textContent = title;
+  $('stext').textContent = text;
+  $('retry').classList.toggle('hide', !retry);
+  $('app').classList.add('hide');
+  $('hdr').classList.add('hide');
+  $('setup').classList.remove('hide');
+}
+
+async function boot(){
+  DEMO = false;
+  $('demobar').classList.add('hide');
+  showState('Cargando la liga…', 'Leyendo los marcadores de Sleeper.', false);
+  try{
+    MODEL = await loadLeague(CFG.leagueId);
+    TAB = TAB || 'resumen';
+    render();
+    window.scrollTo(0, 0);
+  }catch(e){
+    showState('No se pudo leer la liga', 'Sleeper no respondió (' + e.message + '). Revisa tu conexión y vuelve a intentar.', true);
+  }
+}
+
+async function onSave(){
+  CFGFIELDS.forEach(f => { const v = Number($('cf-' + f[0]).value); if(!isNaN(v) && v >= 0) CFG[f[0]] = v; });
+  const ok = await saveConfig();
+  if(DEMO) MODEL = demoModel();
+  else { try{ MODEL = await loadLeague(CFG.leagueId); }catch(e){} }
+  render();
+  $('cfgmsg').innerHTML = ok
+    ? '<div class="msg ok">Guardado. Todos van a ver estos montos.</div>'
+    : '<div class="msg warn">Se aplicó en esta sesión. Para dejarlo fijo, cambia los montos en el código.</div>';
+}
+
+$('retry').onclick = boot;
+$('trydemo').onclick = () => {
+  DEMO = true; MODEL = demoModel();
+  $('demobar').classList.remove('hide');
+  TAB = 'resumen'; render(); window.scrollTo(0, 0);
+};
+$('exitdemo').onclick = boot;
+$('refresh').onclick = async () => {
+  const b = $('refresh'); b.classList.add('spin');
+  if(DEMO){ MODEL = demoModel(); render(); }
+  else { try{ MODEL = await loadLeague(CFG.leagueId); render(); }catch(e){} }
+  setTimeout(() => b.classList.remove('spin'), 500);
+};
+
+let wasMob = MOB(), rzT;
+window.addEventListener('resize', () => {
+  clearTimeout(rzT);
+  rzT = setTimeout(() => { if(MOB() !== wasMob){ wasMob = MOB(); if(MODEL) render(); } }, 180);
+});
+
+(async function init(){
+  await loadConfig();
+  boot();
+})();
+</script>
