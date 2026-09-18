@@ -1,0 +1,1833 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d0d0d">
+<title>DiDi Deal Lab</title>
+<meta name="description" content="Simulador de negociaciones DiDi Food: P&L a nivel unit economics, capa de volumen, escenarios comparativos y proyecciones.">
+<style>
+/* ============================================================
+   DiDi Deal Lab — design tokens
+   Series palette validated (adjacent pairs, light + dark) with
+   the dataviz validator. Light mode carries a sub-3:1 contrast
+   WARN on 3 slots -> relief = direct labels + table view, both shipped.
+   ============================================================ */
+:root{
+  color-scheme: dark;
+  /* brand chrome (never used as a series color) */
+  --brand:#FF7A45; --brand-ink:#1a0d06; --brand-soft:rgba(255,122,69,.13);
+  --brand-line:rgba(255,122,69,.34);
+  /* planes */
+  --plane:#0d0d0d; --surface:#1a1a19; --surface-2:#211f1e; --surface-3:#2a2826;
+  /* ink */
+  --ink:#ffffff; --ink-2:#c3c2b7; --ink-3:#898781;
+  --grid:#2c2c2a; --axis:#383835; --hair:rgba(255,255,255,.10);
+  /* status (fixed, never themed) */
+  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+  /* categorical series (dark steps) */
+  --s1:#3987e5; --s2:#199e70; --s3:#c98500; --s4:#d55181; --s5:#9085e9;
+  --s6:#e66767; --s7:#d95926;
+  /* semantic viz */
+  --pos:#199e70; --neg:#d03b3b; --neu:#3987e5;
+  --r:14px; --r-sm:10px;
+  --shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 12px 34px rgba(0,0,0,.45);
+  --font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+:root[data-theme="light"]{
+  color-scheme: light;
+  --brand:#E4571F; --brand-ink:#ffffff; --brand-soft:rgba(228,87,31,.10);
+  --brand-line:rgba(228,87,31,.30);
+  --plane:#f4f3f0; --surface:#fcfcfb; --surface-2:#f4f3ef; --surface-3:#eae8e2;
+  --ink:#0b0b0b; --ink-2:#52514e; --ink-3:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --hair:rgba(11,11,11,.10);
+  --s1:#2a78d6; --s2:#1baf7a; --s3:#eda100; --s4:#e87ba4; --s5:#4a3aa7;
+  --s6:#e34948; --s7:#eb6834;
+  --pos:#0b7d57; --neg:#c22e2e; --neu:#2a78d6;
+  --shadow:0 1px 2px rgba(11,11,11,.05), 0 10px 28px rgba(11,11,11,.08);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--plane);color:var(--ink);font-family:var(--font);
+  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+.num{font-variant-numeric:tabular-nums}
+.hide{display:none !important}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--surface-3);border-radius:8px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- ambient ---------- */
+.glow{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.glow i{position:absolute;border-radius:50%;filter:blur(90px);opacity:.30}
+.glow i:nth-child(1){width:520px;height:520px;background:var(--brand);top:-220px;left:-120px}
+.glow i:nth-child(2){width:420px;height:420px;background:var(--s1);top:-160px;right:-140px;opacity:.20}
+:root[data-theme="light"] .glow i{opacity:.14}
+
+/* ---------- shell ---------- */
+.app{position:relative;z-index:1;max-width:1340px;margin:0 auto;padding:0 20px 120px}
+header.top{position:sticky;top:0;z-index:60;background:color-mix(in srgb,var(--plane) 88%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--hair)}
+.top-in{max-width:1340px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:11px;flex:none}
+.logo .m{width:38px;height:38px;border-radius:12px;background:var(--brand);display:grid;place-items:center;box-shadow:0 6px 18px rgba(255,122,69,.30);flex:none}
+.logo .m svg{width:20px;height:20px}
+.logo h1{margin:0;font-size:16px;font-weight:650;letter-spacing:-.02em;line-height:1.1}
+.logo p{margin:0;font-size:11px;color:var(--ink-3);letter-spacing:.04em;text-transform:uppercase;font-weight:600}
+.sp{flex:1}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;border:1px solid var(--hair);background:var(--surface);font-size:12px;font-weight:600;color:var(--ink-2)}
+.pill b{color:var(--ink);font-weight:700}
+.iconbtn{width:36px;height:36px;border-radius:11px;border:1px solid var(--hair);background:var(--surface);display:grid;place-items:center;color:var(--ink-2);transition:.15s}
+.iconbtn:hover{border-color:var(--brand-line);color:var(--brand);background:var(--brand-soft)}
+.iconbtn svg{width:17px;height:17px}
+
+/* ---------- tabs ---------- */
+nav.tabs{display:flex;gap:4px;padding:6px;background:var(--surface);border:1px solid var(--hair);border-radius:16px;margin:20px 0 22px;overflow-x:auto;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{flex:1;min-width:120px;padding:10px 14px;border-radius:11px;font-size:13px;font-weight:600;color:var(--ink-3);display:flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;transition:.16s}
+nav.tabs button svg{width:15px;height:15px;flex:none}
+nav.tabs button:hover{color:var(--ink-2);background:var(--surface-2)}
+nav.tabs button.on{background:var(--brand);color:var(--brand-ink);box-shadow:0 4px 14px rgba(255,122,69,.28)}
+:root[data-theme="light"] nav.tabs button.on{box-shadow:0 4px 14px rgba(228,87,31,.24)}
+
+/* ---------- cards ---------- */
+.card{background:var(--surface);border:1px solid var(--hair);border-radius:var(--r);box-shadow:var(--shadow)}
+.card-h{padding:16px 18px 0;display:flex;align-items:flex-start;gap:12px}
+.card-h h3{margin:0;font-size:14.5px;font-weight:650;letter-spacing:-.01em}
+.card-h p{margin:3px 0 0;font-size:12px;color:var(--ink-3);line-height:1.45;max-width:62ch}
+.card-b{padding:16px 18px 18px}
+.grid{display:grid;gap:16px}
+.sec-title{display:flex;align-items:center;gap:10px;margin:26px 0 12px}
+.sec-title h2{margin:0;font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.sec-title .ln{flex:1;height:1px;background:var(--hair)}
+
+/* ---------- kpi tiles ---------- */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--hair);border-radius:var(--r);padding:14px 15px;position:relative;overflow:hidden}
+.kpi::after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent,var(--s1))}
+.kpi .lb{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);display:flex;align-items:center;gap:6px}
+.kpi .vl{font-size:27px;font-weight:700;letter-spacing:-.03em;margin-top:5px;line-height:1.05}
+.kpi .un{font-size:12px;font-weight:600;color:var(--ink-3);margin-left:3px}
+.kpi .sb{font-size:11.5px;color:var(--ink-3);margin-top:5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:6px;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
+.tag.up{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
+.tag.dn{background:color-mix(in srgb,var(--crit) 18%,transparent);color:var(--crit)}
+.tag.fl{background:var(--surface-3);color:var(--ink-3)}
+:root[data-theme="light"] .tag.up{color:#006300}
+:root[data-theme="light"] .tag.dn{color:#b02a2a}
+
+/* ---------- table ---------- */
+.tblwrap{overflow-x:auto;margin:0 -18px;padding:0 18px}
+table.pnl{width:100%;border-collapse:collapse;font-size:13px;min-width:520px}
+table.pnl th,table.pnl td{padding:7px 10px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.pnl th:first-child,table.pnl td:first-child{text-align:left;font-variant-numeric:normal;position:sticky;left:0;background:var(--surface);z-index:2}
+table.pnl thead th{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);border-bottom:1px solid var(--axis);padding-bottom:9px}
+table.pnl tbody tr:hover td{background:var(--surface-2)}
+table.pnl tbody tr:hover td:first-child{background:var(--surface-2)}
+table.pnl td.v{font-weight:600}
+tr.band td{background:var(--surface-2) !important;font-weight:700;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);padding-top:13px;padding-bottom:6px}
+tr.tot td{border-top:1px solid var(--axis);font-weight:700}
+tr.hero td{background:var(--brand-soft) !important;font-weight:700}
+tr.hero td:first-child{background:var(--brand-soft) !important;color:var(--brand)}
+tr.sub td{color:var(--ink-3);font-size:11.5px;font-style:italic}
+tr.sub td:first-child{padding-left:22px}
+.rowinfo{display:inline-flex;width:14px;height:14px;border-radius:50%;border:1px solid var(--hair);color:var(--ink-3);font-size:9px;font-weight:700;align-items:center;justify-content:center;margin-left:6px;cursor:help;vertical-align:middle;flex:none}
+.rowinfo:hover{border-color:var(--brand-line);color:var(--brand)}
+
+/* ---------- inputs ---------- */
+.field{display:flex;flex-direction:column;gap:6px;padding:11px 0;border-bottom:1px solid var(--hair)}
+.field:last-child{border-bottom:none}
+.field .fh{display:flex;align-items:baseline;gap:8px}
+.field .fl{font-size:12.5px;font-weight:600;flex:1;line-height:1.3}
+.field .fu{font-size:10.5px;color:var(--ink-3);font-weight:600;letter-spacing:.04em}
+.field .fd{font-size:11px;color:var(--ink-3);line-height:1.4}
+.ctrl{display:flex;align-items:center;gap:10px}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:22px;background:transparent;cursor:pointer;min-width:60px}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:4px;background:var(--surface-3)}
+input[type=range]::-moz-range-track{height:4px;border-radius:4px;background:var(--surface-3)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--brand);margin-top:-5.5px;border:2px solid var(--surface);box-shadow:0 2px 6px rgba(0,0,0,.4)}
+input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--brand);border:2px solid var(--surface)}
+input[type=number],input[type=text],select{
+  background:var(--surface-2);border:1px solid var(--hair);border-radius:9px;
+  padding:7px 9px;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;
+  width:96px;text-align:right;transition:.15s;
+}
+input[type=text]{text-align:left;width:100%;font-weight:500}
+select{width:auto;text-align:left;font-weight:600;padding-right:26px;cursor:pointer}
+input:focus,select:focus{outline:none;border-color:var(--brand-line);background:var(--surface)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 15px;border-radius:11px;font-size:13px;font-weight:650;border:1px solid var(--hair);background:var(--surface-2);color:var(--ink);transition:.15s}
+.btn:hover{background:var(--surface-3);border-color:var(--axis)}
+.btn svg{width:15px;height:15px}
+.btn.pri{background:var(--brand);color:var(--brand-ink);border-color:transparent;box-shadow:0 6px 18px rgba(255,122,69,.26)}
+.btn.pri:hover{filter:brightness(1.07)}
+.btn.sm{padding:6px 11px;font-size:12px;border-radius:9px}
+.btn.gh{background:transparent}
+.btn.dgr:hover{color:var(--crit);border-color:var(--crit)}
+.btn[disabled]{opacity:.42;pointer-events:none}
+.seg{display:inline-flex;gap:3px;padding:3px;background:var(--surface-2);border:1px solid var(--hair);border-radius:11px}
+.seg button{padding:6px 12px;border-radius:8px;font-size:12px;font-weight:650;color:var(--ink-3)}
+.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.3)}
+:root[data-theme="light"] .seg button.on{box-shadow:0 1px 3px rgba(11,11,11,.12)}
+
+/* ---------- legend & charts ---------- */
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:12px}
+.legend span{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:var(--ink-2)}
+.legend i{width:10px;height:10px;border-radius:3px;flex:none}
+.chart{width:100%;display:block;overflow:visible}
+.chart text{font-family:var(--font)}
+.tip{position:fixed;z-index:200;pointer-events:none;background:var(--surface);border:1px solid var(--axis);border-radius:10px;padding:9px 11px;font-size:12px;box-shadow:0 12px 32px rgba(0,0,0,.5);min-width:150px;opacity:0;transition:opacity .1s}
+.tip.on{opacity:1}
+.tip .tt{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);margin-bottom:5px}
+.tip .tr{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:1.5px 0}
+.tip .tr b{font-variant-numeric:tabular-nums;font-weight:700}
+.tip .tr i{width:8px;height:8px;border-radius:2px;flex:none;margin-right:-2px}
+
+/* ---------- mode gate ---------- */
+.gate{position:fixed;inset:0;z-index:300;background:var(--plane);display:grid;place-items:center;padding:24px;overflow-y:auto}
+.gate-in{max-width:860px;width:100%;text-align:center}
+.gate h2{font-size:clamp(28px,5vw,44px);font-weight:750;letter-spacing:-.035em;margin:20px 0 10px;line-height:1.08}
+.gate h2 em{font-style:normal;color:var(--brand)}
+.gate .lead{font-size:14.5px;color:var(--ink-2);max-width:50ch;margin:0 auto 32px;line-height:1.6}
+.modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;text-align:left}
+.mode{background:var(--surface);border:1px solid var(--hair);border-radius:18px;padding:22px;transition:.2s;position:relative;overflow:hidden;cursor:pointer;display:block;width:100%}
+.mode:hover{border-color:var(--brand-line);transform:translateY(-3px);box-shadow:0 18px 44px rgba(0,0,0,.4)}
+.mode .ic{width:42px;height:42px;border-radius:13px;background:var(--brand-soft);border:1px solid var(--brand-line);display:grid;place-items:center;color:var(--brand);margin-bottom:14px}
+.mode .ic svg{width:21px;height:21px}
+.mode h3{margin:0 0 6px;font-size:17px;font-weight:700;letter-spacing:-.02em}
+.mode p{margin:0 0 14px;font-size:12.5px;color:var(--ink-3);line-height:1.55}
+.mode ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.mode li{font-size:12px;color:var(--ink-2);display:flex;gap:8px;align-items:flex-start;line-height:1.4}
+.mode li::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--brand);margin-top:6px;flex:none}
+.mode .go{margin-top:16px;font-size:12px;font-weight:700;color:var(--brand);display:flex;align-items:center;gap:6px}
+
+/* ---------- scenario cards ---------- */
+.scards{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.scard{background:var(--surface);border:1px solid var(--hair);border-radius:var(--r);padding:0;overflow:hidden;position:relative;transition:.16s;display:flex;flex-direction:column}
+.scard:hover{border-color:var(--axis)}
+.scard .bar{height:3px;background:var(--sc,var(--s1))}
+.scard .in{padding:14px 15px 15px;flex:1;display:flex;flex-direction:column}
+.scard .hd{display:flex;align-items:flex-start;gap:8px;margin-bottom:3px}
+.scard .nm{font-size:14px;font-weight:700;letter-spacing:-.01em;flex:1;line-height:1.25}
+.scard .nt{font-size:11.5px;color:var(--ink-3);line-height:1.45;margin-bottom:11px;min-height:16px}
+.scard .mt{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:11px 0;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);margin-bottom:11px}
+.scard .mt div{min-width:0}
+.scard .mt .k{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.scard .mt .v{font-size:17px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:1px}
+.scard .ov{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px;flex:1;align-content:flex-start}
+.ochip{font-size:10.5px;font-weight:600;padding:3px 7px;border-radius:6px;background:var(--surface-2);border:1px solid var(--hair);color:var(--ink-2);font-variant-numeric:tabular-nums}
+.ochip b{color:var(--ink);font-weight:700}
+.scard .ax{display:flex;gap:6px}
+.scard .ax .btn{flex:1;padding:6px 8px;font-size:11.5px}
+.addcard{border:1px dashed var(--brand-line);background:var(--brand-soft);border-radius:var(--r);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:32px 18px;color:var(--brand);font-weight:650;font-size:13px;min-height:190px;transition:.16s;text-align:center}
+.addcard:hover{background:color-mix(in srgb,var(--brand) 18%,transparent);transform:translateY(-2px)}
+.addcard .pl{width:40px;height:40px;border-radius:13px;background:var(--brand);color:var(--brand-ink);display:grid;place-items:center}
+.addcard .pl svg{width:20px;height:20px}
+.addcard small{font-weight:500;color:var(--ink-3);font-size:11.5px;max-width:28ch;line-height:1.45}
+
+/* ---------- drawer / modal ---------- */
+.ovl{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.66);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .2s}
+.ovl.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,100%);background:var(--plane);border-left:1px solid var(--hair);z-index:160;transform:translateX(102%);transition:transform .26s cubic-bezier(.32,.72,0,1);display:flex;flex-direction:column}
+.drawer.on{transform:translateX(0)}
+.dh{padding:18px 20px 14px;border-bottom:1px solid var(--hair);display:flex;align-items:flex-start;gap:12px;flex:none}
+.dh h3{margin:0;font-size:16px;font-weight:700;letter-spacing:-.02em}
+.dh p{margin:3px 0 0;font-size:12px;color:var(--ink-3);line-height:1.45}
+.db{flex:1;overflow-y:auto;padding:4px 20px 20px}
+.df{padding:14px 20px;border-top:1px solid var(--hair);display:flex;gap:10px;flex:none;background:var(--surface)}
+.df .btn{flex:1}
+.vgroup{margin-top:18px}
+.vgroup>h4{margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);display:flex;align-items:center;gap:8px}
+.vgroup>h4 .ln{flex:1;height:1px;background:var(--hair)}
+.vgroup>p{margin:0 0 9px;font-size:11.5px;color:var(--ink-3);line-height:1.45}
+.pick{display:flex;align-items:flex-start;gap:11px;padding:10px 11px;border-radius:11px;border:1px solid var(--hair);background:var(--surface);margin-bottom:6px;cursor:pointer;transition:.14s}
+.pick:hover{border-color:var(--axis);background:var(--surface-2)}
+.pick.on{border-color:var(--brand-line);background:var(--brand-soft)}
+.pick .bx{width:17px;height:17px;border-radius:5px;border:1.5px solid var(--axis);flex:none;margin-top:1px;display:grid;place-items:center;transition:.14s}
+.pick.on .bx{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.pick .bx svg{width:11px;height:11px;opacity:0}
+.pick.on .bx svg{opacity:1}
+.pick .tx{flex:1;min-width:0}
+.pick .tx b{display:block;font-size:12.5px;font-weight:650;line-height:1.3}
+.pick .tx span{display:block;font-size:11px;color:var(--ink-3);line-height:1.4;margin-top:2px}
+.pick .cur{font-size:11.5px;font-weight:700;color:var(--ink-2);font-variant-numeric:tabular-nums;flex:none;margin-top:1px}
+.edrow{padding:13px 0;border-bottom:1px solid var(--hair)}
+.edrow:last-child{border-bottom:none}
+.edrow .eh{display:flex;align-items:baseline;gap:8px;margin-bottom:3px}
+.edrow .en{font-size:12.5px;font-weight:650;flex:1}
+.edrow .eu{font-size:10.5px;color:var(--ink-3);font-weight:600}
+.edrow .ed{font-size:11px;color:var(--ink-3);margin-bottom:7px;line-height:1.4}
+.edrow .base{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.swatches{display:flex;gap:7px;flex-wrap:wrap}
+.swatch{width:26px;height:26px;border-radius:8px;border:2px solid transparent;transition:.14s}
+.swatch.on{border-color:var(--ink);transform:scale(1.1)}
+.empty{text-align:center;padding:44px 20px;color:var(--ink-3)}
+.empty svg{width:34px;height:34px;opacity:.4;margin-bottom:10px}
+.empty p{margin:0;font-size:13px;max-width:40ch;margin-inline:auto;line-height:1.55}
+
+.note{display:flex;gap:10px;padding:11px 13px;border-radius:11px;background:var(--surface-2);border:1px solid var(--hair);font-size:11.5px;color:var(--ink-2);line-height:1.5}
+.note svg{width:15px;height:15px;flex:none;margin-top:1px;color:var(--brand)}
+.note b{color:var(--ink)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.side{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+@media(max-width:1000px){.side,.two,.three{grid-template-columns:1fr}}
+@media(max-width:620px){
+  .app{padding:0 14px 110px}.top-in{padding:10px 14px}
+  .kpi .vl{font-size:23px}.card-b,.card-h{padding-left:14px;padding-right:14px}
+  .tblwrap{margin:0 -14px;padding:0 14px}
+}
+@media print{.glow,nav.tabs,header.top{display:none}.card{break-inside:avoid}}
+</style>
+</head>
+<body data-palette="#3987e5,#199e70,#c98500,#d55181,#9085e9">
+<div class="glow"><i></i><i></i></div>
+<div class="tip" id="tip"></div>
+
+<!-- ============ MODE GATE ============ -->
+<div class="gate" id="gate">
+  <div class="gate-in">
+    <div class="logo" style="justify-content:center">
+      <div class="m"><svg viewBox="0 0 24 24" fill="none" stroke="#1a0d06" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-6 4 3 5-8"/><path d="M3 21h18"/></svg></div>
+      <div style="text-align:left"><h1>DiDi Deal Lab</h1><p>Negotiation P&amp;L Simulator</p></div>
+    </div>
+    <h2>¿A qué nivel vas a <em>modelar</em> el deal?</h2>
+    <p class="lead">Define el alcance primero. Eso decide cuántas variables entran al modelo y qué tan granular es la capa de volumen.</p>
+    <div class="modes">
+      <button class="mode" data-mode="brand">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg></div>
+        <h3>Nivel Marca</h3>
+        <p>Un P&amp;L blended para toda la cuenta. Rápido, para la mesa de negociación.</p>
+        <ul>
+          <li>Unit economics por orden + capa de volumen</li>
+          <li>~14 variables negociables</li>
+          <li>Ideal para KA con footprint estable</li>
+        </ul>
+        <div class="go">Empezar <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      </button>
+      <button class="mode" data-mode="store">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9h18v11a1 1 0 01-1 1H4a1 1 0 01-1-1z"/><path d="M3 9a3 3 0 006 0 3 3 0 006 0 3 3 0 006 0"/></svg></div>
+        <h3>Nivel Tienda</h3>
+        <p>Modelo completo por sede, con mix Delivery / Pick-up y aperturas con ramp-up.</p>
+        <ul>
+          <li>Todo lo anterior + parque de tiendas y productividad</li>
+          <li>P&amp;L separado Delivery vs Pick-up y blended</li>
+          <li>Inversión del deal (sign-on, mkt, warranty) y payback</li>
+        </ul>
+        <div class="go">Empezar <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      </button>
+    </div>
+    <div class="note" style="margin-top:26px;text-align:left">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/></svg>
+      <div>Puedes cambiar de nivel después sin perder el baseline. <b>R&nbsp;Burn</b> nunca se trata como costo: reduce la base sobre la que se calcula el Take Rate Income.</div>
+    </div>
+  </div>
+</div>
+
+<header class="top hide" id="top">
+  <div class="top-in">
+    <div class="logo">
+      <div class="m"><svg viewBox="0 0 24 24" fill="none" stroke="#1a0d06" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-6 4 3 5-8"/><path d="M3 21h18"/></svg></div>
+      <div><h1>DiDi Deal Lab</h1><p id="brandLbl">Negotiation Simulator</p></div>
+    </div>
+    <div class="sp"></div>
+    <button class="pill" id="modePill" title="Cambiar nivel de modelado"></button>
+    <button class="iconbtn" id="themeBtn" title="Cambiar tema" aria-label="Cambiar tema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+    <button class="iconbtn" id="resetBtn" title="Reiniciar todo" aria-label="Reiniciar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9 9 9 0 00-6.4 2.6L3 8"/><path d="M3 3v5h5"/></svg></button>
+  </div>
+</header>
+
+<main class="app hide" id="app">
+  <nav class="tabs" id="tabs"></nav>
+  <section id="tab-baseline"></section>
+  <section id="tab-scenarios" class="hide"></section>
+  <section id="tab-compare" class="hide"></section>
+  <section id="tab-projections" class="hide"></section>
+</main>
+
+<div class="ovl" id="ovl"></div>
+<aside class="drawer" id="drawer">
+  <div class="dh">
+    <div style="flex:1"><h3 id="drTitle">Escenario</h3><p id="drSub"></p></div>
+    <button class="iconbtn" id="drClose" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+  </div>
+  <div class="db" id="drBody"></div>
+  <div class="df" id="drFoot"></div>
+</aside>
+
+<script>
+"use strict";
+/* ============================================================================
+   DiDi Deal Lab — motor de cálculo
+   ----------------------------------------------------------------------------
+   Reglas del modelo (derivadas del simulador de referencia, hojas Sim_* / PnL_Ref):
+
+   GMV            = AOP + Service Fee + Delivery Fee
+   R Burn         = %GMV x GMV          -> NO es costo. Es descuento del restaurante.
+   Take Rate Inc. = (AOP - R Burn) x Contract Take Rate
+                    ^ R Burn baja la BASE sobre la que se cobra el take rate.
+   Eff. Take Rate = TRI / AOP
+   Business Inc.  = TRI + Delivery Income + Service Fee
+   Business Cost  = Delivery Cost + D Burn + B2C + P2C + Meal Loss + Others
+   CM sin Ads     = Business Income - Business Cost
+   CM con Ads     = CM sin Ads + Ads Revenue
+   TED            = R Burn + B2C + P2C   (total effective discount al consumidor)
+   Brand's Income = AOP - R Burn - TRI   (lo que se lleva la marca por orden)
+   ============================================================================ */
+
+const $  = (s,r)=> (r||document).querySelector(s);
+const $$ = (s,r)=> Array.prototype.slice.call((r||document).querySelectorAll(s));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const uid = ()=> Math.random().toString(36).slice(2,9);
+const SVGNS="http://www.w3.org/2000/svg";
+function el(tag,attrs,kids){const n=document.createElementNS(SVGNS,tag);
+  for(const k in (attrs||{})) if(attrs[k]!=null) n.setAttribute(k,attrs[k]);
+  (kids||[]).forEach(c=>n.appendChild(c)); return n;}
+function h(tag,attrs,html){const n=document.createElement(tag);
+  for(const k in (attrs||{})){ if(k==='class')n.className=attrs[k]; else if(k.slice(0,2)==='on')n.addEventListener(k.slice(2),attrs[k]); else if(attrs[k]!=null)n.setAttribute(k,attrs[k]); }
+  if(html!=null)n.innerHTML=html; return n;}
+const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- formato ---------- */
+const nf=(v,d)=>Number(v).toLocaleString('es-MX',{minimumFractionDigits:d,maximumFractionDigits:d});
+function mxn(v,d){ d=d==null?2:d; return (v<0?'-$':'$')+nf(Math.abs(v),d); }
+function pct(v,d){ d=d==null?1:d; return nf(v*100,d)+'%'; }
+function big(v){ // pesos absolutos compactos
+  const a=Math.abs(v), s=v<0?'-':'';
+  if(a>=1e9) return s+'$'+nf(a/1e9,2)+'B';
+  if(a>=1e6) return s+'$'+nf(a/1e6,2)+'M';
+  if(a>=1e3) return s+'$'+nf(a/1e3,1)+'K';
+  return s+'$'+nf(a,0);
+}
+function bigN(v){ const a=Math.abs(v),s=v<0?'-':'';
+  if(a>=1e6) return s+nf(a/1e6,2)+'M';
+  if(a>=1e3) return s+nf(a/1e3,1)+'K';
+  return s+nf(a,0); }
+function signed(v,f){ return (v>0?'+':'')+ (f?f(v):nf(v,2)); }
+
+/* ============================================================================
+   1. REGISTRO DE VARIABLES
+   ============================================================================ */
+const GROUPS = {
+  vol:    {l:'Volumen',            d:'Cuántas órdenes entran al modelo. Escala todo el P&L pero no cambia el unit economics.'},
+  ticket: {l:'Ticket & GMV',       d:'La composición del GMV por orden. AOP es el producto; fee y delivery son lo que paga el usuario encima.'},
+  tr:     {l:'Take Rate',          d:'La comisión contractual. Es la palanca #1 de la negociación.'},
+  burn:   {l:'Burns & Descuentos', d:'R Burn es del restaurante (no es costo nuestro). B2C / P2C / D Burn sí son inversión de DiDi.'},
+  cost:   {l:'Costos operativos',  d:'Lo que cuesta cumplir la orden.'},
+  rev:    {l:'Otros ingresos',     d:'Ads y revenue incremental fuera del take rate.'},
+  deal:   {l:'Inversión del deal', d:'Dinero puesto sobre la mesa para cerrar. No es unit economics: se amortiza contra el CM.'}
+};
+/* t: mxn | pct | num | int   ·  modes: dónde aplica */
+const VARS = {
+  dailyOrders:   {g:'vol',   l:'AVG Daily Orders',        u:'K órdenes / día', t:'num', dec:1, min:0,   max:200,  step:.1,  modes:['brand'],
+                  d:'Órdenes promedio por día de toda la cuenta, en miles.'},
+  stores:        {g:'vol',   l:'Tiendas activas',         u:'tiendas',         t:'int', min:1, max:3000, step:1,   modes:['store'],
+                  d:'Parque de tiendas vivas hoy en la plataforma.'},
+  ordersStoreDay:{g:'vol',   l:'Órdenes / tienda / día',  u:'órd / tienda / día', t:'num', dec:2, min:0, max:80, step:.1, modes:['store'],
+                  d:'Productividad por sede. La palanca de volumen más peleada en un deal de tiendas.'},
+  pickupMix:     {g:'vol',   l:'Mix Pick-up',             u:'% de órdenes',    t:'pct', min:0, max:1,  step:.005, modes:['store'],
+                  d:'Qué % de las órdenes son pick-up. Pick-up no lleva delivery fee ni costo de reparto, pero su take rate es mucho menor.'},
+
+  aop:           {g:'ticket',l:'AOP',                     u:'MXN / orden',     t:'mxn', min:0, max:1200, step:1,  modes:['brand','store'],
+                  d:'Average Order Price: el valor de la comida. Base sobre la que se cobra el take rate.'},
+  serviceFee:    {g:'ticket',l:'Service Fee',             u:'MXN / orden',     t:'mxn', min:0, max:120,  step:.5, modes:['brand','store'],
+                  d:'Fee de servicio al usuario. Entra completo a Business Income.'},
+  deliveryFee:   {g:'ticket',l:'Delivery Fee (income)',   u:'MXN / orden',     t:'mxn', min:0, max:150,  step:.5, modes:['brand','store'],
+                  d:'Lo que paga el usuario por el envío. Es income; su contraparte es el Delivery Cost.'},
+
+  contractTR:    {g:'tr',    l:'Contract Take Rate',      u:'% s/ (AOP - R Burn)', t:'pct', min:0, max:.45, step:.0025, modes:['brand','store'],
+                  d:'La comisión firmada. Se aplica sobre AOP menos R Burn, no sobre el AOP completo.'},
+  contractTRPk:  {g:'tr',    l:'Take Rate Pick-up',       u:'% s/ (AOP - R Burn)', t:'pct', min:0, max:.30, step:.0025, modes:['store'],
+                  d:'Comisión del canal pick-up. Suele estar 1 dígito por debajo del de delivery.'},
+
+  rburnPct:      {g:'burn',  l:'R Burn',                  u:'% del GMV',       t:'pct', min:0, max:.45, step:.0025, modes:['brand','store'],
+                  d:'Descuento que pone el RESTAURANTE. Ojo: no es costo de DiDi — reduce la base sobre la que cobramos take rate.',
+                  warn:true},
+  b2cPct:        {g:'burn',  l:'B2C Burn',                u:'% del GMV',       t:'pct', min:0, max:.15, step:.001, modes:['brand','store'],
+                  d:'Inversión de DiDi al consumidor (cupones, engagement, adquisición). Costo real.'},
+  p2cPct:        {g:'burn',  l:'P2C Burn',                u:'% del GMV',       t:'pct', min:0, max:.20, step:.001, modes:['brand','store'],
+                  d:'Promo platform-to-consumer. Costo real de DiDi.'},
+  dBurn:         {g:'burn',  l:'D Burn',                  u:'MXN / orden',     t:'mxn', min:0, max:80,  step:.5,  modes:['brand','store'],
+                  d:'Subsidio al repartidor no cubierto por el delivery fee.'},
+
+  deliveryCost:  {g:'cost',  l:'Delivery Cost',           u:'MXN / orden',     t:'mxn', min:0, max:150, step:.5, modes:['brand','store'],
+                  d:'Costo bruto de entrega por orden de delivery.'},
+  mealLossPct:   {g:'cost',  l:'Meal Loss',               u:'% del GMV',       t:'pct', min:0, max:.08, step:.0005, modes:['brand','store'],
+                  d:'Órdenes canceladas / reembolsos / incidencias.'},
+  mealLossPkF:   {g:'cost',  l:'Factor Meal Loss Pick-up',u:'x sobre delivery',t:'num', dec:2, min:0, max:2, step:.05, modes:['store'],
+                  d:'Pick-up falla menos: el modelo de referencia usa 0.50x.'},
+  othersPerOrder:{g:'cost',  l:'Otros costos',            u:'MXN / orden',     t:'mxn', min:-30, max:60, step:.5, modes:['brand','store'],
+                  d:'Cualquier otro costo variable por orden (soporte, chargebacks, etc).'},
+
+  adsPct:        {g:'rev',   l:'Ads Revenue',             u:'% del GMV',       t:'pct', min:0, max:.06, step:.0005, modes:['brand','store'],
+                  d:'Inversión publicitaria de la marca dentro del app. Se reporta aparte del CM core.'},
+
+  signOn:        {g:'deal',  l:'Sign-on Bonus',           u:'MXN totales',     t:'int', min:0, max:50000000, step:50000, modes:['brand','store'],
+                  d:'Bono de firma. Se amortiza contra el CM del horizonte.'},
+  mktExp:        {g:'deal',  l:'Inversión de Marketing',  u:'MXN totales',     t:'int', min:0, max:50000000, step:50000, modes:['brand','store'],
+                  d:'Marketing comprometido en el contrato.'},
+  warranty:      {g:'deal',  l:'Profit Warranty',         u:'MXN totales',     t:'int', min:0, max:50000000, step:50000, modes:['brand','store'],
+                  d:'Garantía de utilidad prometida a la marca.'}
+};
+const VAR_KEYS = Object.keys(VARS);
+const varsFor = m => VAR_KEYS.filter(k=>VARS[k].modes.indexOf(m)>=0);
+
+/* ---------- baselines de arranque ---------- */
+/* Nivel marca: KA de café MX, cifras del P&L YTD de referencia (MXN por orden). */
+const BASE_BRAND = {
+  name:'Baseline · KA Café MX',
+  dailyOrders:22.0, aop:324, serviceFee:17, deliveryFee:21,
+  contractTR:0.095, rburnPct:0.160, b2cPct:0.0124, p2cPct:0.0492, dBurn:16,
+  deliveryCost:22, mealLossPct:0.0155, othersPerOrder:0, adsPct:0.005,
+  signOn:0, mktExp:0, warranty:0
+};
+/* Nivel tienda: cadena de cafeterías, 60 sedes (modelo de referencia Sede). */
+const BASE_STORE = {
+  name:'Baseline · Cadena 60 sedes',
+  stores:60, ordersStoreDay:8.9, pickupMix:0.01,
+  aop:145, serviceFee:10.4, deliveryFee:17.3,
+  contractTR:0.130, contractTRPk:0.010, rburnPct:0.050,
+  b2cPct:0.020, p2cPct:0.040, dBurn:13.25,
+  deliveryCost:22.5, mealLossPct:0.015, mealLossPkF:0.50,
+  othersPerOrder:0, adsPct:0.010,
+  signOn:0, mktExp:0, warranty:0
+};
+
+/* ============================================================================
+   2. MOTOR DE P&L
+   ============================================================================ */
+/* P&L de un canal, por orden (MXN/orden). */
+function channelPnl(p, isPickup){
+  const deliveryFee = isPickup ? 0 : (p.deliveryFee||0);
+  const gmv         = (p.aop||0) + (p.serviceFee||0) + deliveryFee;
+  const rburn       = (p.rburnPct||0) * gmv;                 // descuento del restaurante
+  const tr          = isPickup ? (p.contractTRPk||0) : (p.contractTR||0);
+  const triBase     = (p.aop||0) - rburn;                    // <- R Burn recorta la base
+  const tri         = triBase * tr;
+
+  const deliveryIncome = deliveryFee;
+  const serviceFee     = p.serviceFee||0;
+  const businessIncome = tri + deliveryIncome + serviceFee;
+
+  const b2c      = (p.b2cPct||0)*gmv;
+  const p2c      = (p.p2cPct||0)*gmv;
+  const mealLoss = (p.mealLossPct||0)*gmv*(isPickup ? (p.mealLossPkF==null?0.5:p.mealLossPkF) : 1);
+  const deliveryCost = isPickup ? 0 : (p.deliveryCost||0);
+  const dBurn        = isPickup ? 0 : (p.dBurn||0);
+  const others       = p.othersPerOrder||0;
+  const businessCost = deliveryCost + dBurn + b2c + p2c + mealLoss + others;
+
+  const ads   = (p.adsPct||0)*gmv;
+  const cm    = businessIncome - businessCost;
+  const cmAds = cm + ads;
+  const ted   = rburn + b2c + p2c;
+  const brandIncome = (p.aop||0) - rburn - tri;
+
+  return {
+    gmv, aop:p.aop||0, rburn, rburnPctGmv: gmv?rburn/gmv:0,
+    contractTR:tr, triBase, tri, effTR: p.aop? tri/p.aop:0, triPctGmv: gmv?tri/gmv:0,
+    deliveryIncome, serviceFee, businessIncome, businessIncomePctGmv: gmv?businessIncome/gmv:0,
+    deliveryCost, dBurn, b2c, p2c, mealLoss, others, businessCost,
+    b2cPctGmv: gmv?b2c/gmv:0, p2cPctGmv: gmv?p2c/gmv:0, mealLossPctGmv: gmv?mealLoss/gmv:0,
+    ads, adsPctGmv: gmv?ads/gmv:0,
+    cm, cmPctGmv: gmv?cm/gmv:0, cmAds, cmAdsPctGmv: gmv?cmAds/gmv:0,
+    ted, tedPctGmv: gmv?ted/gmv:0,
+    brandIncome, brandIncomePctGmv: gmv?brandIncome/gmv:0
+  };
+}
+const PNL_KEYS = ['gmv','aop','rburn','triBase','tri','deliveryIncome','serviceFee','businessIncome',
+  'deliveryCost','dBurn','b2c','p2c','mealLoss','others','businessCost','ads','cm','cmAds','ted','brandIncome'];
+
+/* Mezcla ponderada de canales -> unit economics blended. */
+function blend(a,b,wB){
+  const o={}, wA=1-wB;
+  PNL_KEYS.forEach(k=> o[k]=a[k]*wA + b[k]*wB);
+  o.contractTR = a.contractTR*wA + b.contractTR*wB;
+  o.rburnPctGmv = o.gmv? o.rburn/o.gmv:0;
+  o.effTR       = o.aop? o.tri/o.aop:0;
+  o.triPctGmv   = o.gmv? o.tri/o.gmv:0;
+  o.businessIncomePctGmv = o.gmv? o.businessIncome/o.gmv:0;
+  o.b2cPctGmv   = o.gmv? o.b2c/o.gmv:0;
+  o.p2cPctGmv   = o.gmv? o.p2c/o.gmv:0;
+  o.mealLossPctGmv = o.gmv? o.mealLoss/o.gmv:0;
+  o.adsPctGmv   = o.gmv? o.ads/o.gmv:0;
+  o.cmPctGmv    = o.gmv? o.cm/o.gmv:0;
+  o.cmAdsPctGmv = o.gmv? o.cmAds/o.gmv:0;
+  o.tedPctGmv   = o.gmv? o.ted/o.gmv:0;
+  o.brandIncomePctGmv = o.gmv? o.brandIncome/o.gmv:0;
+  return o;
+}
+
+/* Modelo completo: unit economics + volumen + totales del periodo. */
+function model(p, mode, days){
+  days = days || 365;
+  const delivery = channelPnl(p,false);
+  let pickup=null, ue=delivery, pkMix=0;
+  if(mode==='store'){
+    pkMix  = clamp(p.pickupMix||0,0,1);
+    pickup = channelPnl(p,true);
+    ue     = blend(delivery, pickup, pkMix);
+  }
+  const dailyOrders = mode==='store' ? (p.stores||0)*(p.ordersStoreDay||0) : (p.dailyOrders||0)*1000;
+  const orders = dailyOrders*days;
+
+  const tot={};
+  PNL_KEYS.forEach(k=> tot[k]=ue[k]*orders);
+  tot.orders=orders; tot.dailyOrders=dailyOrders; tot.days=days;
+  tot.dealInvest = (p.signOn||0)+(p.mktExp||0)+(p.warranty||0);
+  tot.fullProfit = tot.cmAds - tot.dealInvest;
+  tot.dailyBrandIncome = ue.brandIncome*dailyOrders;
+
+  return {ue, delivery, pickup, pkMix, tot, params:p, mode, days,
+          ordersDelivery: orders*(1-pkMix), ordersPickup: orders*pkMix};
+}
+
+/* ============================================================================
+   3. ESTADO
+   ============================================================================ */
+const SERIES = ['--s1','--s2','--s3','--s4','--s5'];
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+const STATE = {
+  mode:null, tab:'baseline',
+  base:{}, baseName:'',
+  scenarios:[],          // {id,name,note,color,ov:{key:value}}
+  days:365, period:'year',
+  editing:null, picking:null,
+  cmpMetric:'cmAds', cmpBasis:'unit',
+  proj:{ horizon:24, growth:0.002, rampMonths:3, rampStart:0.6, newPerMonth:0, rampUpMonths:6, investMode:'spread' }
+};
+const PERIODS = {month:{l:'Mes',d:30.4}, quarter:{l:'Trimestre',d:91.25}, year:{l:'Año',d:365}};
+
+function paramsOf(sc){
+  if(!sc) return Object.assign({},STATE.base);
+  return Object.assign({}, STATE.base, sc.ov);
+}
+const mBase = ()=> model(STATE.base, STATE.mode, STATE.days);
+const mScen = sc => model(paramsOf(sc), STATE.mode, STATE.days);
+
+function save(){
+  try{ localStorage.setItem('didi-deal-lab-v1', JSON.stringify({
+    mode:STATE.mode, base:STATE.base, baseName:STATE.baseName,
+    scenarios:STATE.scenarios, period:STATE.period, proj:STATE.proj,
+    theme:document.documentElement.getAttribute('data-theme')
+  })); }catch(e){}
+}
+function load(){
+  try{
+    const r=JSON.parse(localStorage.getItem('didi-deal-lab-v1')||'null');
+    if(!r||!r.mode) return false;
+    STATE.mode=r.mode; STATE.base=r.base; STATE.baseName=r.baseName||'';
+    STATE.scenarios=r.scenarios||[]; STATE.period=r.period||'year';
+    STATE.days=PERIODS[STATE.period].d;
+    STATE.proj=Object.assign(STATE.proj, r.proj||{});
+    if(r.theme) document.documentElement.setAttribute('data-theme',r.theme);
+    return true;
+  }catch(e){ return false; }
+}
+
+/* ============================================================================
+   4. PRIMITIVAS DE CHART (SVG inline, sin dependencias)
+   ============================================================================ */
+const TIP=$('#tip');
+function tipShow(ev,html){
+  TIP.innerHTML=html; TIP.classList.add('on');
+  const r=TIP.getBoundingClientRect();
+  let x=ev.clientX+14, y=ev.clientY-r.height-12;
+  if(x+r.width>innerWidth-10) x=ev.clientX-r.width-14;
+  if(y<10) y=ev.clientY+16;
+  TIP.style.left=x+'px'; TIP.style.top=y+'px';
+}
+function tipHide(){ TIP.classList.remove('on'); }
+function tipRow(c,k,v){ return '<div class="tr">'+(c?'<i style="background:'+c+'"></i>':'')+'<span>'+esc(k)+'</span><b>'+v+'</b></div>'; }
+function hov(node,html){
+  node.style.cursor='default';
+  node.addEventListener('mouseenter',e=>tipShow(e,html));
+  node.addEventListener('mousemove',e=>tipShow(e,html));
+  node.addEventListener('mouseleave',tipHide);
+  node.addEventListener('touchstart',e=>{tipShow(e.touches[0],html);},{passive:true});
+}
+function txt(x,y,s,o){ const a=Object.assign({x:x,y:y,fill:'var(--ink-3)','font-size':11,'font-weight':600},o||{});
+  const n=el('text',a); n.textContent=s; return n; }
+function mount(host,w,hgt){
+  host.innerHTML='';
+  const svg=el('svg',{class:'chart',viewBox:'0 0 '+w+' '+hgt,width:'100%',height:hgt,role:'img'});
+  host.appendChild(svg); return svg;
+}
+const CW = host => Math.max(300, host.clientWidth||host.parentNode.clientWidth||640);
+
+/* ---- 4.1 Waterfall / bridge ------------------------------------------------
+   items: {label, value, kind:'abs'|'delta'|'total', color?, note?}          */
+function chartWaterfall(host,items,opt){
+  opt=opt||{}; const fmt=opt.fmt||(v=>mxn(v,1));
+  const W=CW(host), H=opt.height||300, PL=8, PR=8, PB=56, PT=26;
+  const svg=mount(host,W,H);
+  const n=items.length, iw=(W-PL-PR)/n, bw=Math.min(opt.maxBar||64, iw*0.62);
+
+  // acumulados
+  let run=0; const geo=items.map(it=>{
+    if(it.kind==='abs'||it.kind==='total'){ const g={from:0,to:it.value}; run=it.value; return g; }
+    const g={from:run,to:run+it.value}; run+=it.value; return g;
+  });
+  let lo=0,hi=0; geo.forEach(g=>{lo=Math.min(lo,g.from,g.to);hi=Math.max(hi,g.from,g.to);});
+  const pad=(hi-lo)*0.12||1; hi+=pad; lo-=pad*0.6;
+  const y=v=>PT+(H-PT-PB)*(1-(v-lo)/(hi-lo));
+
+  // grid + cero
+  const zy=y(0);
+  svg.appendChild(el('line',{x1:PL,x2:W-PR,y1:zy,y2:zy,stroke:'var(--axis)','stroke-width':1}));
+
+  items.forEach((it,i)=>{
+    const cx=PL+iw*i+iw/2, g=geo[i];
+    const up=g.to>=g.from;
+    const y0=y(Math.max(g.from,g.to)), y1=y(Math.min(g.from,g.to));
+    const hh=Math.max(2,y1-y0);
+    const col=it.color || (it.kind!=='delta' ? 'var(--neu)' : (up?'var(--pos)':'var(--neg)'));
+    // conector
+    if(i>0 && it.kind==='delta'){
+      const py=y(geo[i-1].to);
+      svg.appendChild(el('line',{x1:PL+iw*(i-1)+iw/2+bw/2+2,x2:cx-bw/2-2,y1:py,y2:py,
+        stroke:'var(--axis)','stroke-width':1,'stroke-dasharray':'3 3'}));
+    }
+    const rect=el('rect',{x:cx-bw/2,y:y0,width:bw,height:hh,rx:4,fill:col,
+      stroke:'var(--surface)','stroke-width':2});
+    hov(rect,'<div class="tt">'+esc(it.label)+'</div>'+
+      tipRow(col, it.kind==='delta'?'Impacto':'Valor', fmt(it.value))+
+      (it.kind==='delta'? tipRow('','Acumulado', fmt(g.to)):'')+
+      (it.note?'<div class="tr" style="color:var(--ink-3);font-size:11px;display:block;padding-top:4px">'+esc(it.note)+'</div>':''));
+    svg.appendChild(rect);
+    // valor directo
+    const lblY = up ? y0-7 : y1+14;
+    svg.appendChild(txt(cx, lblY, (it.kind==='delta'?signed(it.value,fmt):fmt(it.value)),
+      {'text-anchor':'middle','font-size':11.5,'font-weight':700,fill:'var(--ink)'}));
+    // categoría (wrap 2 líneas)
+    const words=String(it.label).split(' '); const lines=[]; let cur='';
+    words.forEach(w=>{ if((cur+' '+w).trim().length> Math.max(9,Math.floor(iw/6.2))){lines.push(cur);cur=w;} else cur=(cur+' '+w).trim(); });
+    if(cur)lines.push(cur);
+    lines.slice(0,2).forEach((ln,j)=> svg.appendChild(txt(cx,H-PB+20+j*12,ln,{'text-anchor':'middle','font-size':10.5})));
+  });
+  return svg;
+}
+
+/* ---- 4.2 Barras agrupadas -------------------------------------------------
+   cats:[string]  series:[{name,color,values:[]}]                            */
+function chartGrouped(host,cats,series,opt){
+  opt=opt||{}; const fmt=opt.fmt||(v=>nf(v,1));
+  const W=CW(host), H=opt.height||270, PL=opt.padL||46, PR=14, PT=18, PB=46;
+  const svg=mount(host,W,H);
+  const plotW=W-PL-PR, gw=plotW/cats.length;
+  let lo=0,hi=0; series.forEach(s=>s.values.forEach(v=>{lo=Math.min(lo,v);hi=Math.max(hi,v);}));
+  if(hi===lo){hi=lo+1;} const pad=(hi-lo)*0.16; hi+=pad; lo-= (lo<0?pad:0);
+  const y=v=>PT+(H-PT-PB)*(1-(v-lo)/(hi-lo));
+  // grid
+  for(let t=0;t<=4;t++){ const v=lo+(hi-lo)*t/4, yy=y(v);
+    svg.appendChild(el('line',{x1:PL,x2:W-PR,y1:yy,y2:yy,stroke:'var(--grid)','stroke-width':1}));
+    svg.appendChild(txt(PL-8,yy+3.5,fmt(v),{'text-anchor':'end','font-size':10,fill:'var(--ink-3)'}));
+  }
+  const zy=y(0);
+  if(lo<0) svg.appendChild(el('line',{x1:PL,x2:W-PR,y1:zy,y2:zy,stroke:'var(--axis)','stroke-width':1.5}));
+  const bw=Math.min(opt.maxBar||34,(gw*0.74)/series.length);
+  cats.forEach((c,i)=>{
+    const gx=PL+gw*i+gw/2, tot=series.length*bw+(series.length-1)*2;
+    series.forEach((s,j)=>{
+      const v=s.values[i]; if(v==null) return;
+      const x=gx-tot/2+j*(bw+2);
+      const y0=Math.min(y(v),zy), hh=Math.max(2,Math.abs(y(v)-zy));
+      const r=el('rect',{x:x,y:y0,width:bw,height:hh,rx:4,fill:s.color,stroke:'var(--surface)','stroke-width':2});
+      hov(r,'<div class="tt">'+esc(c)+'</div>'+tipRow(s.color,s.name,(opt.tipFmt||fmt)(v)));
+      svg.appendChild(r);
+      if(opt.labels!==false)
+        svg.appendChild(txt(x+bw/2, v>=0? y(v)-6 : y(v)+13, fmt(v),
+          {'text-anchor':'middle','font-size':10,'font-weight':700,fill:'var(--ink-2)'}));
+    });
+    svg.appendChild(txt(gx,H-PB+18,c,{'text-anchor':'middle','font-size':10.5,fill:'var(--ink-2)','font-weight':650}));
+  });
+  return svg;
+}
+
+/* ---- 4.3 Barra de composición apilada (horizontal) ----------------------- */
+function chartStack(host,segments,opt){
+  opt=opt||{}; const fmt=opt.fmt||(v=>mxn(v,1));
+  const W=CW(host), BH=opt.barH||30, H=BH+opt.rows*0+34;
+  const svg=mount(host,W,H);
+  const total=segments.reduce((a,s)=>a+Math.abs(s.value),0)||1;
+  let x=0;
+  segments.forEach(s=>{
+    const w=Math.abs(s.value)/total*W;
+    const r=el('rect',{x:x,y:4,width:Math.max(0,w-2),height:BH,rx:4,fill:s.color});
+    hov(r,'<div class="tt">'+esc(s.name)+'</div>'+tipRow(s.color,fmt(s.value),pct(Math.abs(s.value)/total,1)));
+    svg.appendChild(r);
+    if(w>52) svg.appendChild(txt(x+w/2,4+BH/2+4,pct(Math.abs(s.value)/total,0),
+      {'text-anchor':'middle','font-size':10.5,'font-weight':700,fill:'#fff'}));
+    x+=w;
+  });
+  return svg;
+}
+
+/* ---- 4.4 Líneas / área con crosshair -------------------------------------
+   xLabels:[], series:[{name,color,values,area?}]                            */
+function chartLines(host,xLabels,series,opt){
+  opt=opt||{}; const fmt=opt.fmt||(v=>bigN(v));
+  const W=CW(host), H=opt.height||300, PL=opt.padL||52, PR=16, PT=18, PB=40;
+  const svg=mount(host,W,H);
+  const n=xLabels.length, plotW=W-PL-PR;
+  const X=i=> n<2? PL+plotW/2 : PL+plotW*i/(n-1);
+  let lo=0,hi=0; series.forEach(s=>s.values.forEach(v=>{lo=Math.min(lo,v);hi=Math.max(hi,v);}));
+  if(hi===lo)hi=lo+1; const pad=(hi-lo)*0.12; hi+=pad; if(lo<0)lo-=pad;
+  const Y=v=>PT+(H-PT-PB)*(1-(v-lo)/(hi-lo));
+  for(let t=0;t<=4;t++){ const v=lo+(hi-lo)*t/4, yy=Y(v);
+    svg.appendChild(el('line',{x1:PL,x2:W-PR,y1:yy,y2:yy,stroke:'var(--grid)','stroke-width':1}));
+    svg.appendChild(txt(PL-8,yy+3.5,fmt(v),{'text-anchor':'end','font-size':10}));
+  }
+  if(lo<0) svg.appendChild(el('line',{x1:PL,x2:W-PR,y1:Y(0),y2:Y(0),stroke:'var(--axis)','stroke-width':1.5}));
+  if(opt.marker!=null && opt.marker>=0 && opt.marker<n){
+    const mx=X(opt.marker);
+    svg.appendChild(el('line',{x1:mx,x2:mx,y1:PT,y2:H-PB,stroke:'var(--brand)','stroke-width':1.5,'stroke-dasharray':'4 4'}));
+    svg.appendChild(txt(mx+5,PT+11,opt.markerLabel||'',{'font-size':10.5,'font-weight':700,fill:'var(--brand)'}));
+  }
+  series.forEach(s=>{
+    if(s.area){
+      let d='M'+X(0)+','+Y(0);
+      s.values.forEach((v,i)=> d+=' L'+X(i)+','+Y(v));
+      d+=' L'+X(n-1)+','+Y(0)+' Z';
+      svg.appendChild(el('path',{d:d,fill:s.color,opacity:.14}));
+    }
+    let d=''; s.values.forEach((v,i)=> d+=(i?' L':'M')+X(i)+','+Y(v));
+    svg.appendChild(el('path',{d:d,fill:'none',stroke:s.color,'stroke-width':2,
+      'stroke-linejoin':'round','stroke-linecap':'round','stroke-dasharray':s.dash||null}));
+  });
+  // etiquetas de eje x (selectivas)
+  const stepX=Math.max(1,Math.ceil(n/8));
+  xLabels.forEach((l,i)=>{ if(i%stepX===0||i===n-1)
+    svg.appendChild(txt(X(i),H-PB+17,l,{'text-anchor':'middle','font-size':10})); });
+  // etiqueta directa al final de cada serie (<=4)
+  if(series.length<=4) series.forEach(s=>{
+    const lv=s.values[n-1];
+    svg.appendChild(txt(X(n-1)-2,Y(lv)-8,fmt(lv),{'text-anchor':'end','font-size':10.5,'font-weight':700,fill:'var(--ink-2)'}));
+  });
+  // crosshair
+  const cl=el('line',{x1:0,x2:0,y1:PT,y2:H-PB,stroke:'var(--ink-3)','stroke-width':1,opacity:0});
+  svg.appendChild(cl);
+  const dots=series.map(s=>{const c=el('circle',{r:4.5,fill:s.color,stroke:'var(--surface)','stroke-width':2,opacity:0});svg.appendChild(c);return c;});
+  const hit=el('rect',{x:PL,y:PT,width:plotW,height:H-PT-PB,fill:'transparent'});
+  svg.appendChild(hit);
+  function move(cx,ev){
+    const bb=svg.getBoundingClientRect(), sx=(cx-bb.left)*(W/bb.width);
+    let i=Math.round((sx-PL)/(plotW/(n-1||1))); i=clamp(i,0,n-1);
+    cl.setAttribute('x1',X(i)); cl.setAttribute('x2',X(i)); cl.setAttribute('opacity',.45);
+    let html='<div class="tt">'+esc(xLabels[i])+'</div>';
+    series.forEach((s,k)=>{ dots[k].setAttribute('cx',X(i)); dots[k].setAttribute('cy',Y(s.values[i])); dots[k].setAttribute('opacity',1);
+      html+=tipRow(s.color,s.name,(opt.tipFmt||fmt)(s.values[i])); });
+    tipShow(ev,html);
+  }
+  hit.addEventListener('mousemove',e=>move(e.clientX,e));
+  hit.addEventListener('touchmove',e=>{move(e.touches[0].clientX,e.touches[0]);},{passive:true});
+  hit.addEventListener('mouseleave',()=>{cl.setAttribute('opacity',0);dots.forEach(d=>d.setAttribute('opacity',0));tipHide();});
+  return svg;
+}
+
+/* ---- 4.5 Tornado de sensibilidad ----------------------------------------- */
+function chartTornado(host,items,opt){
+  opt=opt||{}; const fmt=opt.fmt||(v=>mxn(v,2));
+  const rowH=32, W=CW(host), H=items.length*rowH+24, PL=Math.min(170,W*0.32), PR=72;
+  const svg=mount(host,W,H);
+  const m=Math.max.apply(null,items.map(i=>Math.max(Math.abs(i.lo),Math.abs(i.hi))))||1;
+  const cx=PL+(W-PL-PR)/2, half=(W-PL-PR)/2;
+  const X=v=>cx+half*(v/m);
+  svg.appendChild(el('line',{x1:cx,x2:cx,y1:4,y2:H-16,stroke:'var(--axis)','stroke-width':1}));
+  items.forEach((it,i)=>{
+    const y=8+i*rowH;
+    [['lo',it.lo,'var(--neg)'],['hi',it.hi,'var(--pos)']].forEach(([k,v,dc])=>{
+      const x0=Math.min(cx,X(v)), w=Math.max(2,Math.abs(X(v)-cx));
+      const r=el('rect',{x:x0,y:y,width:w,height:rowH-12,rx:3,fill:v>=0?'var(--pos)':'var(--neg)',
+        stroke:'var(--surface)','stroke-width':2});
+      hov(r,'<div class="tt">'+esc(it.label)+'</div>'+tipRow(v>=0?cssv('--pos'):cssv('--neg'),
+        k==='lo'? (it.loLabel||'-10%'):(it.hiLabel||'+10%'), signed(v,fmt)));
+      svg.appendChild(r);
+      const end=X(v), right=end>=cx, inside=w>=44;
+      svg.appendChild(txt(
+        inside ? (right? end-6 : end+6) : (right? end+6 : end-6),
+        y+13, signed(v,fmt),
+        {'text-anchor': inside ? (right?'end':'start') : (right?'start':'end'),
+         'font-size':10,'font-weight':700,
+         fill: inside ? '#fff' : 'var(--ink-3)'}));
+    });
+    svg.appendChild(txt(PL-10,y+13,it.label,{'text-anchor':'end','font-size':11,fill:'var(--ink-2)','font-weight':650}));
+  });
+  return svg;
+}
+
+/* ============================================================================
+   5. FILAS DEL P&L (una sola definición para todas las vistas)
+   ============================================================================ */
+const R = (k,l,o)=> Object.assign({k:k,l:l,kind:'row'},o||{});
+function pnlRows(mode){
+  const isStore = mode==='store';
+  const rows = [
+    {kind:'band',l:'Volumen'},
+    R('dailyOrders','AVG Daily Orders',{u:m=>m.tot.dailyOrders/1000,t:m=>m.tot.dailyOrders/1000,f:'k',uu:'K/día',
+      help:'Órdenes promedio por día. En modo tienda = tiendas x órdenes/tienda/día.'}),
+    R('orders','Órdenes del periodo',{u:m=>m.tot.orders,t:m=>m.tot.orders,f:'n',
+      help:'Daily orders x días del periodo seleccionado.'}),
+    R('gmv','GMV',{u:m=>m.ue.gmv,t:m=>m.tot.gmv,f:'$',
+      help:'AOP + Service Fee + Delivery Fee.'}),
+
+    {kind:'band',l:'Ticket'},
+    R('aop','AOP',{u:m=>m.ue.aop,t:m=>m.tot.aop,f:'$',help:'Valor de la comida. Base del take rate.'}),
+    R('serviceFee','Service Fee',{u:m=>m.ue.serviceFee,t:m=>m.tot.serviceFee,f:'$'}),
+    R('deliveryIncome','Delivery Fee',{u:m=>m.ue.deliveryIncome,t:m=>m.tot.deliveryIncome,f:'$'}),
+
+    {kind:'band',l:'Lado de la marca'},
+    R('rburn','R Burn',{u:m=>m.ue.rburn,t:m=>m.tot.rburn,f:'$',flag:'warn',
+      help:'Descuento que financia el RESTAURANTE. No es costo de DiDi: su efecto es recortar la base sobre la que cobramos take rate.'}),
+    R('rburnPctGmv','R Burn / GMV',{u:m=>m.ue.rburnPctGmv,t:m=>m.ue.rburnPctGmv,f:'%',kind:'sub'}),
+    R('triBase','Base de comisión (AOP - R Burn)',{u:m=>m.ue.triBase,t:m=>m.tot.triBase,f:'$',kind:'sub'}),
+    R('contractTR','Contract Take Rate',{u:m=>m.ue.contractTR,t:m=>m.ue.contractTR,f:'%',kind:'sub'}),
+    R('effTR','Effective Take Rate',{u:m=>m.ue.effTR,t:m=>m.ue.effTR,f:'%',kind:'sub',
+      help:'TRI / AOP. Lo que realmente capturamos del producto.'}),
+    R('brandIncome',"Brand's Income",{u:m=>m.ue.brandIncome,t:m=>m.tot.brandIncome,f:'$',kind:'hero',
+      help:"AOP - R Burn - Take Rate Income: lo que le queda a la marca por orden."}),
+    R('dailyBrandIncome',"Daily Brand's Income",{u:m=>m.tot.dailyBrandIncome,t:m=>m.tot.dailyBrandIncome,f:'$0',kind:'sub',noUnit:true,
+      help:"Brand's Income x órdenes diarias. El número que la marca lleva a su comité."}),
+
+    {kind:'band',l:'Business Income'},
+    R('tri','Take Rate Income',{u:m=>m.ue.tri,t:m=>m.tot.tri,f:'$',
+      help:'(AOP - R Burn) x Contract Take Rate.'}),
+    R('triPctGmv','TRI / GMV',{u:m=>m.ue.triPctGmv,t:m=>m.ue.triPctGmv,f:'%',kind:'sub'}),
+    R('deliveryIncome2','Delivery Income',{u:m=>m.ue.deliveryIncome,t:m=>m.tot.deliveryIncome,f:'$'}),
+    R('serviceFee2','Service Fee',{u:m=>m.ue.serviceFee,t:m=>m.tot.serviceFee,f:'$'}),
+    R('businessIncome','BUSINESS INCOME',{u:m=>m.ue.businessIncome,t:m=>m.tot.businessIncome,f:'$',kind:'tot'}),
+
+    {kind:'band',l:'Business Costs'},
+    R('deliveryCost','Delivery Cost',{u:m=>m.ue.deliveryCost,t:m=>m.tot.deliveryCost,f:'$'}),
+    R('dBurn','D Burn',{u:m=>m.ue.dBurn,t:m=>m.tot.dBurn,f:'$'}),
+    R('b2c','B2C Burn',{u:m=>m.ue.b2c,t:m=>m.tot.b2c,f:'$'}),
+    R('b2cPctGmv','B2C / GMV',{u:m=>m.ue.b2cPctGmv,t:m=>m.ue.b2cPctGmv,f:'%',kind:'sub'}),
+    R('p2c','P2C Burn',{u:m=>m.ue.p2c,t:m=>m.tot.p2c,f:'$'}),
+    R('p2cPctGmv','P2C / GMV',{u:m=>m.ue.p2cPctGmv,t:m=>m.ue.p2cPctGmv,f:'%',kind:'sub'}),
+    R('mealLoss','Meal Loss',{u:m=>m.ue.mealLoss,t:m=>m.tot.mealLoss,f:'$'}),
+    R('mealLossPctGmv','Meal Loss / GMV',{u:m=>m.ue.mealLossPctGmv,t:m=>m.ue.mealLossPctGmv,f:'%',kind:'sub'}),
+    R('others','Otros',{u:m=>m.ue.others,t:m=>m.tot.others,f:'$'}),
+    R('businessCost','BUSINESS COSTS',{u:m=>m.ue.businessCost,t:m=>m.tot.businessCost,f:'$',kind:'tot'}),
+
+    {kind:'band',l:'Resultado'},
+    R('cm','CM sin Ads',{u:m=>m.ue.cm,t:m=>m.tot.cm,f:'$',kind:'tot',
+      help:'Business Income - Business Costs.'}),
+    R('cmPctGmv','CM sin Ads / GMV',{u:m=>m.ue.cmPctGmv,t:m=>m.ue.cmPctGmv,f:'%',kind:'sub'}),
+    R('ads','Ads Revenue',{u:m=>m.ue.ads,t:m=>m.tot.ads,f:'$'}),
+    R('adsPctGmv','Ads / GMV',{u:m=>m.ue.adsPctGmv,t:m=>m.ue.adsPctGmv,f:'%',kind:'sub'}),
+    R('cmAds','CM con Ads',{u:m=>m.ue.cmAds,t:m=>m.tot.cmAds,f:'$',kind:'hero'}),
+    R('cmAdsPctGmv','CM con Ads / GMV',{u:m=>m.ue.cmAdsPctGmv,t:m=>m.ue.cmAdsPctGmv,f:'%',kind:'sub'}),
+    R('ted','TED',{u:m=>m.ue.ted,t:m=>m.tot.ted,f:'$',
+      help:'Total Effective Discount = R Burn + B2C + P2C. El descuento total que ve el usuario, venga de quien venga.'}),
+    R('tedPctGmv','TED / GMV',{u:m=>m.ue.tedPctGmv,t:m=>m.ue.tedPctGmv,f:'%',kind:'sub'})
+  ];
+  const hasDeal = STATE.base.signOn||STATE.base.mktExp||STATE.base.warranty ||
+                  STATE.scenarios.some(s=>s.ov.signOn||s.ov.mktExp||s.ov.warranty);
+  if(hasDeal){
+    rows.push({kind:'band',l:'Inversión del deal'});
+    rows.push(R('dealInvest','Inversión total',{u:m=>m.tot.dealInvest,t:m=>m.tot.dealInvest,f:'$0',
+      help:'Sign-on + marketing + profit warranty. No entra al unit economics; se resta del CM del periodo.'}));
+    rows.push(R('fullProfit','FULL PROFIT del periodo',{u:m=>m.tot.fullProfit,t:m=>m.tot.fullProfit,f:'$0',kind:'hero'}));
+  }
+  return rows;
+}
+function fmtCell(f,v,basis){
+  if(v==null||!isFinite(v)) return '—';
+  if(f==='%') return pct(v,1);
+  if(f==='k') return nf(v,1);
+  if(f==='n') return bigN(v);
+  if(f==='$0') return big(v);
+  if(f==='$') return basis==='unit'? mxn(v,1) : big(v);
+  return nf(v,1);
+}
+
+/* ============================================================================
+   6. UI — tabs
+   ============================================================================ */
+const TABS=[
+  {k:'baseline',   l:'Baseline',    i:'<path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/>'},
+  {k:'scenarios',  l:'Escenarios',  i:'<rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/>'},
+  {k:'compare',    l:'Comparativo', i:'<path d="M12 3v18"/><path d="M5 8l-2 6h4z"/><path d="M19 8l-2 6h4z"/><path d="M5 8l7-3 7 3"/>'},
+  {k:'projections',l:'Proyecciones',i:'<path d="M3 17l5-6 4 3 5-8"/><path d="M17 6h4v4"/><path d="M3 21h18"/>'}
+];
+function renderTabs(){
+  const n=$('#tabs'); n.innerHTML='';
+  TABS.forEach(t=>{
+    const b=h('button',{class:STATE.tab===t.k?'on':'',onclick:()=>{STATE.tab=t.k;render();window.scrollTo({top:0,behavior:'smooth'});}});
+    b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+t.i+'</svg>'+t.l+
+      (t.k==='scenarios'&&STATE.scenarios.length?' <span style="opacity:.7">('+STATE.scenarios.length+')</span>':'');
+    n.appendChild(b);
+  });
+}
+
+/* ---- control de periodo ---- */
+function periodSeg(){
+  const s=h('div',{class:'seg'});
+  Object.keys(PERIODS).forEach(k=>{
+    s.appendChild(h('button',{class:STATE.period===k?'on':'',onclick:()=>{
+      STATE.period=k; STATE.days=PERIODS[k].d; save(); render();}},PERIODS[k].l));
+  });
+  return s;
+}
+
+/* ============================================================================
+   7. TAB · BASELINE
+   ============================================================================ */
+function kpiTile(label,value,unit,sub,accent){
+  const d=h('div',{class:'kpi',style:'--accent:'+accent});
+  d.innerHTML='<div class="lb">'+esc(label)+'</div><div class="vl">'+value+
+    (unit?'<span class="un">'+esc(unit)+'</span>':'')+'</div>'+(sub?'<div class="sb">'+sub+'</div>':'');
+  return d;
+}
+function renderBaseline(){
+  const root=$('#tab-baseline'); root.innerHTML='';
+  const m=mBase(), ue=m.ue, tot=m.tot;
+
+  /* --- hero KPIs --- */
+  const kp=h('div',{class:'kpis'});
+  kp.appendChild(kpiTile('CM con Ads', mxn(ue.cmAds,2),'/orden',
+    '<span class="tag '+(ue.cmAdsPctGmv>=0?'up':'dn')+'">'+pct(ue.cmAdsPctGmv,2)+' del GMV</span>'+
+    '<span>'+big(tot.cmAds)+' · '+PERIODS[STATE.period].l.toLowerCase()+'</span>',
+    ue.cmAds>=0?'var(--pos)':'var(--neg)'));
+  kp.appendChild(kpiTile('Business Income', mxn(ue.businessIncome,2),'/orden',
+    'TRI '+mxn(ue.tri,1)+' · Fee '+mxn(ue.serviceFee,1)+' · Del. '+mxn(ue.deliveryIncome,1),'var(--s1)'));
+  kp.appendChild(kpiTile('Business Costs', mxn(ue.businessCost,2),'/orden',
+    'Delivery '+pct(ue.gmv?(ue.deliveryCost+ue.dBurn)/ue.gmv:0,1)+' · Burns '+pct(ue.gmv?(ue.b2c+ue.p2c)/ue.gmv:0,1)+' del GMV','var(--s3)'));
+  kp.appendChild(kpiTile('Effective Take Rate', pct(ue.effTR,2),'',
+    'Contrato '+pct(ue.contractTR,2)+' <span class="tag fl">-'+pct(ue.contractTR-ue.effTR,2)+' por R Burn</span>','var(--s5)'));
+  kp.appendChild(kpiTile('TED', pct(ue.tedPctGmv,1),'del GMV',
+    mxn(ue.ted,1)+'/orden · R Burn '+pct(ue.gmv?ue.rburn/ue.ted:0,0)+' de la mezcla','var(--s4)'));
+  kp.appendChild(kpiTile("Brand's Income", mxn(ue.brandIncome,1),'/orden',
+    big(tot.dailyBrandIncome)+' al día para la marca','var(--s2)'));
+  root.appendChild(kp);
+
+  /* --- bridge + composición --- */
+  root.appendChild(secTitle('Unit economics · cómo se construye el CM por orden'));
+  const side=h('div',{class:'side'});
+
+  const c1=h('div',{class:'card'});
+  c1.appendChild(h('div',{class:'card-h'},
+    '<div style="flex:1"><h3>Del GMV al CM, peso por peso</h3><p>Todo en MXN por orden. Arriba: cómo se reparte el GMV — nota que el <b>R Burn</b> es una tajada de la marca, no un costo de DiDi, pero al salir del AOP recorta la base de comisión y por eso encoge el Take Rate Income. Abajo: el bridge del Take Rate Income al CM.</p></div>'));
+  const b1=h('div',{class:'card-b'});
+  const host1=h('div'); b1.appendChild(host1); c1.appendChild(b1);
+
+  const bridge=[
+    {label:'Take Rate Income', value:ue.tri, kind:'abs', color:'var(--s1)', note:'(AOP - R Burn) x take rate'},
+    {label:'+ Delivery Income', value:ue.deliveryIncome, kind:'delta'},
+    {label:'+ Service Fee', value:ue.serviceFee, kind:'delta'},
+    {label:'- Delivery Cost', value:-ue.deliveryCost, kind:'delta'},
+    {label:'- D Burn', value:-ue.dBurn, kind:'delta'},
+    {label:'- B2C Burn', value:-ue.b2c, kind:'delta'},
+    {label:'- P2C Burn', value:-ue.p2c, kind:'delta'},
+    {label:'- Meal Loss', value:-ue.mealLoss, kind:'delta'}
+  ];
+  if(Math.abs(ue.others)>0.001) bridge.push({label:'- Otros', value:-ue.others, kind:'delta'});
+  bridge.push({label:'+ Ads', value:ue.ads, kind:'delta', color:'var(--s2)'});
+  bridge.push({label:'CM con Ads', value:ue.cmAds, kind:'total', color: ue.cmAds>=0?'var(--pos)':'var(--neg)'});
+  const hostG=h('div',{style:'margin-bottom:18px'});
+  b1.insertBefore(hostG,host1);
+  b1.insertBefore(h('div',{style:'font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px'},
+    'A dónde va cada peso del GMV &nbsp;·&nbsp; '+mxn(ue.gmv,1)+' por orden'),hostG);
+  side.appendChild(c1);
+
+  const c2=h('div',{class:'card'});
+  c2.appendChild(h('div',{class:'card-h'},'<div style="flex:1"><h3>Volumen del periodo</h3><p>La capa que escala el unit economics.</p></div>'));
+  const b2=h('div',{class:'card-b'});
+  b2.appendChild(h('div',{style:'display:flex;justify-content:space-between;align-items:center;margin-bottom:14px'},
+    '<span style="font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)">Periodo</span>'));
+  b2.querySelector('div').appendChild(periodSeg());
+  const vols=[
+    ['Órdenes / día', bigN(tot.dailyOrders)],
+    ['Órdenes del periodo', bigN(tot.orders)],
+    ['GMV', big(tot.gmv)],
+    ['Business Income', big(tot.businessIncome)],
+    ['Business Costs', big(tot.businessCost)],
+    ['CM con Ads', big(tot.cmAds)]
+  ];
+  if(STATE.mode==='store'){
+    vols.splice(1,0,['Delivery / Pick-up', pct(1-m.pkMix,0)+' / '+pct(m.pkMix,0)]);
+    vols.splice(1,0,['Tiendas', nf(STATE.base.stores,0)]);
+  }
+  const vt=h('table',{class:'pnl',style:'min-width:0'});
+  vt.innerHTML='<tbody>'+vols.map((v,i)=>'<tr'+(i===vols.length-1?' class="hero"':'')+'><td>'+v[0]+'</td><td class="v">'+v[1]+'</td></tr>').join('')+'</tbody>';
+  b2.appendChild(vt);
+  const comp=h('div',{style:'margin-top:16px'});
+  comp.innerHTML='<div style="font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px">Composición del costo</div>';
+  const hostC=h('div'); comp.appendChild(hostC); b2.appendChild(comp);
+  c2.appendChild(b2); side.appendChild(c2);
+  root.appendChild(side);
+
+  const gmvSplit=[
+    {name:"Brand's Income",color:cssv('--s1'),value:ue.brandIncome},
+    {name:'R Burn (descuento de la marca)',color:cssv('--s2'),value:ue.rburn},
+    {name:'Take Rate Income',color:cssv('--s3'),value:ue.tri},
+    {name:'Delivery Fee',color:cssv('--s4'),value:ue.deliveryIncome},
+    {name:'Service Fee',color:cssv('--s5'),value:ue.serviceFee}
+  ].filter(x=>Math.abs(x.value)>0.001);
+  chartStack(hostG,gmvSplit,{rows:1,barH:32,fmt:v=>mxn(v,1)});
+  const lgG=h('div',{class:'legend',style:'margin-bottom:6px'});
+  gmvSplit.forEach(x=> lgG.appendChild(h('span',null,'<i style="background:'+x.color+'"></i>'+x.name+' <b style="color:var(--ink-3);font-weight:600">'+mxn(x.value,1)+'</b>')));
+  hostG.appendChild(lgG);
+  chartWaterfall(host1,bridge,{height:320,fmt:v=>mxn(v,1),maxBar:52});
+  const segs=[
+    {name:'Delivery Cost',color:cssv('--s1'),value:ue.deliveryCost},
+    {name:'D Burn',color:cssv('--s2'),value:ue.dBurn},
+    {name:'B2C Burn',color:cssv('--s3'),value:ue.b2c},
+    {name:'P2C Burn',color:cssv('--s4'),value:ue.p2c},
+    {name:'Meal Loss',color:cssv('--s5'),value:ue.mealLoss}
+  ].filter(s=>s.value>0);
+  chartStack(hostC,segs,{rows:1,barH:26,fmt:v=>mxn(v,2)});
+  const lg=h('div',{class:'legend'});
+  segs.forEach(s=> lg.appendChild(h('span',null,'<i style="background:'+s.color+'"></i>'+s.name+' <b style="color:var(--ink-3);font-weight:600">'+mxn(s.value,1)+'</b>')));
+  hostC.parentNode.appendChild(lg);
+
+  /* --- P&L completo + editor --- */
+  root.appendChild(secTitle('P&L completo'));
+  const side2=h('div',{class:'side'});
+  const cT=h('div',{class:'card'});
+  const hd=h('div',{class:'card-h'});
+  hd.innerHTML='<div style="flex:1"><h3>'+esc(STATE.baseName||'Baseline')+'</h3><p>Por orden y en total del periodo. Pasa el cursor sobre <span class="rowinfo">i</span> para ver la definición de cada línea.</p></div>';
+  hd.appendChild(csvBtn([{name:STATE.baseName||'Baseline',m:m}],'unit'));
+  cT.appendChild(hd);
+  const bT=h('div',{class:'card-b'});
+  bT.appendChild(pnlTable([{name:STATE.baseName||'Baseline',m:m,color:cssv('--s1')}],true));
+  cT.appendChild(bT); side2.appendChild(cT);
+  side2.appendChild(inputsCard());
+  root.appendChild(side2);
+
+  /* --- sensibilidad --- */
+  root.appendChild(secTitle('Sensibilidad · qué mueve más la aguja'));
+  const cS=h('div',{class:'card'});
+  cS.appendChild(h('div',{class:'card-h'},'<div style="flex:1"><h3>Impacto en CM por orden de un movimiento de ±10% en cada variable</h3><p>Ordenado por magnitud. Lee esto antes de decidir qué vas a ceder en la mesa.</p></div>'));
+  const bS=h('div',{class:'card-b'}); const hostT=h('div'); bS.appendChild(hostT); cS.appendChild(bS);
+  root.appendChild(cS);
+  chartTornado(hostT, sensitivity(), {fmt:v=>mxn(v,2)});
+  const lgS=h('div',{class:'legend'});
+  lgS.innerHTML='<span><i style="background:var(--pos)"></i>Mejora el CM</span><span><i style="background:var(--neg)"></i>Deteriora el CM</span>';
+  bS.appendChild(lgS);
+}
+function secTitle(t){ const d=h('div',{class:'sec-title'}); d.innerHTML='<h2>'+esc(t)+'</h2><div class="ln"></div>'; return d; }
+
+function sensitivity(){
+  const base=mBase().ue.cmAds, out=[];
+  varsFor(STATE.mode).forEach(k=>{
+    if(VARS[k].g==='deal') return;
+    const v0=STATE.base[k]||0; if(!v0) return;
+    const f=(mult)=>{ const p=Object.assign({},STATE.base); p[k]=clamp(v0*mult,VARS[k].min,VARS[k].max);
+      return model(p,STATE.mode,STATE.days).ue.cmAds - base; };
+    const lo=f(0.9), hi=f(1.1);
+    if(Math.abs(lo)<0.0005&&Math.abs(hi)<0.0005) return;
+    out.push({label:VARS[k].l, lo:lo, hi:hi, loLabel:'-10%', hiLabel:'+10%', mag:Math.max(Math.abs(lo),Math.abs(hi))});
+  });
+  return out.sort((a,b)=>b.mag-a.mag).slice(0,9);
+}
+
+/* ============================================================================
+   8. TABLA DE P&L reutilizable
+   ============================================================================ */
+function pnlTable(entries,dual){
+  const rows=pnlRows(STATE.mode);
+  const wrap=h('div',{class:'tblwrap'});
+  const t=h('table',{class:'pnl'});
+  const basis = dual? null : STATE.cmpBasis;
+  let head='<thead><tr><th>Línea</th>';
+  if(dual){ head+='<th>Por orden</th><th>Total · '+esc(PERIODS[STATE.period].l.toLowerCase())+'</th>'; }
+  else entries.forEach((e,i)=>{ head+='<th><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:'+e.color+';margin-right:6px"></span>'+esc(e.name)+(i?'<br><span style="font-weight:600;color:var(--ink-3);text-transform:none;letter-spacing:0">Δ vs baseline</span>':'')+'</th>'; });
+  head+='</tr></thead>';
+  let body='<tbody>';
+  rows.forEach(r=>{
+    if(r.kind==='band'){ body+='<tr class="band"><td colspan="'+(1+(dual?2:entries.length))+'">'+esc(r.l)+'</td></tr>'; return; }
+    const cls=r.kind==='row'?'':(' class="'+r.kind+'"');
+    const info=r.help? '<span class="rowinfo" title="'+esc(r.help)+'">i</span>':'';
+    const flag=r.flag==='warn'? '<span style="color:var(--warn);font-weight:700;margin-right:5px" title="No es costo de DiDi">▲</span>':'';
+    body+='<tr'+cls+'><td>'+flag+esc(r.l)+info+'</td>';
+    if(dual){
+      const m=entries[0].m;
+      body+='<td class="v">'+(r.noUnit? '<span style="color:var(--ink-3)">—</span>' : fmtCell(r.f,r.u(m),'unit'))+'</td>';
+      const isPct = r.f==='%';
+      body+='<td class="v">'+(isPct? fmtCell(r.f,r.u(m),'unit') : fmtCell(r.f==='$'?'$':r.f,r.t(m),'total'))+'</td>';
+    } else {
+      const b=entries[0].m;
+      entries.forEach((e,i)=>{
+        const get = basis==='unit'? r.u : r.t;
+        const v=get(e.m);
+        let cell=fmtCell(r.f,v,basis);
+        if(i>0 && r.f!=='n'){
+          const bv=get(b), d=v-bv;
+          const tol=Math.abs(bv)*1e-9;
+          if(Math.abs(d)>tol+1e-9){
+            const good = ['businessCost','rburn','b2c','p2c','mealLoss','deliveryCost','dBurn','ted','others','dealInvest',
+                          'rburnPctGmv','b2cPctGmv','p2cPctGmv','mealLossPctGmv','tedPctGmv'].indexOf(r.k)>=0 ? d<0 : d>0;
+            cell+='<br><span class="tag '+(good?'up':'dn')+'">'+(r.f==='%'?signed(d,v=>pct(v,1)):(r.f==='n'?signed(d,bigN):signed(d,x=>fmtCell(r.f,x,basis))))+'</span>';
+          }
+        }
+        body+='<td class="v">'+cell+'</td>';
+      });
+    }
+    body+='</tr>';
+  });
+  body+='</tbody>';
+  t.innerHTML=head+body; wrap.appendChild(t); return wrap;
+}
+
+function exportCSV(entries,basis){
+  const rows=pnlRows(STATE.mode), out=[];
+  out.push(['Linea'].concat(entries.map(e=>e.name)).join(','));
+  rows.forEach(r=>{
+    if(r.kind==='band'){ out.push('"'+r.l.toUpperCase()+'"'); return; }
+    const get = basis==='unit'? r.u : r.t;
+    out.push(['"'+r.l.replace(/"/g,"'")+'"'].concat(entries.map(e=>{
+      const v=get(e.m); return (v==null||!isFinite(v))?'':Number(v).toFixed(r.f==='%'?6:4);
+    })).join(','));
+  });
+  const meta=['','"Base: '+(basis==='unit'?'MXN por orden':'Total '+PERIODS[STATE.period].l)+'"',
+              '"Nivel: '+(STATE.mode==='store'?'Tienda':'Marca')+'"',
+              '"Generado: '+new Date().toLocaleString('es-MX')+'"'];
+  const blob=new Blob([['\ufeff'].concat(out,meta).join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='didi-deal-lab-'+(basis==='unit'?'unit':'total')+'-'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click(); URL.revokeObjectURL(a.href);
+}
+function csvBtn(entries,basis){
+  const b=h('button',{class:'btn sm',onclick:()=>exportCSV(entries,basis)});
+  b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>Exportar CSV';
+  return b;
+}
+
+/* ============================================================================
+   9. CAMPOS DE INPUT
+   ============================================================================ */
+function toDisp(k,v){ const V=VARS[k]; return V.t==='pct'? v*100 : v; }
+function fromDisp(k,v){ const V=VARS[k]; return V.t==='pct'? v/100 : v; }
+function dispStep(k){ const V=VARS[k]; return V.t==='pct'? V.step*100 : V.step; }
+function fmtVar(k,v){
+  const V=VARS[k];
+  if(V.t==='pct') return pct(v, V.step<0.001?2:(V.step<0.01?2:1));
+  if(V.t==='mxn') return mxn(v, v>=100?1:2);
+  if(V.t==='int') return v>=100000? big(v) : nf(v,0);
+  return nf(v,V.dec==null?1:V.dec);
+}
+function fieldRow(k,val,onChange,opt){
+  opt=opt||{}; const V=VARS[k];
+  const f=h('div',{class:opt.cls||'field'});
+  const head=h('div',{class:'fh'});
+  head.innerHTML='<span class="fl">'+esc(V.l)+(V.warn?' <span style="color:var(--warn)" title="No es costo">▲</span>':'')+'</span><span class="fu">'+esc(V.u)+'</span>';
+  f.appendChild(head);
+  if(opt.desc!==false && V.d) f.appendChild(h('div',{class:'fd'},esc(V.d)));
+  if(opt.baseHint!=null)
+    f.appendChild(h('div',{class:'base'},'Baseline: <b style="color:var(--ink-2)">'+fmtVar(k,opt.baseHint)+'</b>'+
+      (val!==opt.baseHint? ' &nbsp;→&nbsp; <b style="color:var(--brand)">'+fmtVar(k,val)+'</b> <span class="tag '+((val-opt.baseHint)>0?'up':'dn')+'">'+
+        (opt.baseHint? signed((val-opt.baseHint)/Math.abs(opt.baseHint),v=>pct(v,0)) : signed(val-opt.baseHint,v=>nf(v,1)))+'</span>' : '')));
+  const c=h('div',{class:'ctrl'});
+  const rg=h('input',{type:'range',min:toDisp(k,V.min),max:toDisp(k,V.max),step:dispStep(k),value:toDisp(k,val)});
+  const nb=h('input',{type:'number',min:toDisp(k,V.min),max:toDisp(k,V.max),step:dispStep(k),value:Number(toDisp(k,val).toFixed(4))});
+  function push(x){ const v=clamp(fromDisp(k,Number(x)),V.min,V.max); onChange(v); }
+  rg.addEventListener('input',e=>{ nb.value=Number(Number(e.target.value).toFixed(4)); push(e.target.value); });
+  nb.addEventListener('input',e=>{ if(e.target.value===''||isNaN(Number(e.target.value)))return; rg.value=e.target.value; push(e.target.value); });
+  c.appendChild(rg); c.appendChild(nb); f.appendChild(c);
+  return f;
+}
+let rerenderT=null;
+function softRender(){ clearTimeout(rerenderT); rerenderT=setTimeout(()=>{save();render();},220); }
+
+function inputsCard(){
+  const c=h('div',{class:'card'});
+  c.appendChild(h('div',{class:'card-h'},'<div style="flex:1"><h3>Variables del baseline</h3><p>Esta es la verdad contra la que se miden todos los escenarios. Muévela solo si cambió la realidad, no para simular.</p></div>'));
+  const b=h('div',{class:'card-b',style:'max-height:620px;overflow-y:auto'});
+  const keys=varsFor(STATE.mode);
+  Object.keys(GROUPS).forEach(g=>{
+    const ks=keys.filter(k=>VARS[k].g===g); if(!ks.length) return;
+    const gd=h('div',{class:'vgroup'});
+    gd.innerHTML='<h4>'+esc(GROUPS[g].l)+'<span class="ln"></span></h4>';
+    ks.forEach(k=> gd.appendChild(fieldRow(k,STATE.base[k]||0,v=>{STATE.base[k]=v;softRender();},{desc:false})));
+    b.appendChild(gd);
+  });
+  c.appendChild(b);
+  const f=h('div',{class:'card-b',style:'padding-top:0;display:flex;gap:9px'});
+  f.appendChild(h('button',{class:'btn sm',onclick:()=>{
+    STATE.base=Object.assign({}, STATE.mode==='store'?BASE_STORE:BASE_BRAND);
+    STATE.baseName=(STATE.mode==='store'?BASE_STORE:BASE_BRAND).name; save(); render();
+  }},'Restaurar valores de referencia'));
+  c.appendChild(f);
+  return c;
+}
+
+/* ============================================================================
+   10. TAB · ESCENARIOS
+   ============================================================================ */
+function scColor(i){ return cssv(SERIES[(i+1)%SERIES.length]); }
+function newScenario(){
+  const i=STATE.scenarios.length;
+  return {id:uid(), name:'Escenario '+(i+1), note:'', colorIdx:(i+1)%SERIES.length, ov:{}};
+}
+function renderScenarios(){
+  const root=$('#tab-scenarios'); root.innerHTML='';
+  const bm=mBase();
+
+  const head=h('div',{class:'card'});
+  head.innerHTML='<div class="card-h"><div style="flex:1"><h3>Escenarios comparativos</h3>'+
+    '<p>El baseline queda fijo. Cada escenario guarda <b>solo</b> las variables que decidiste impactar — el resto hereda del baseline, así que si el baseline cambia, todos los escenarios se recalculan.</p></div></div>';
+  const hb=h('div',{class:'card-b',style:'padding-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center'});
+  const addBtn=h('button',{class:'btn pri',onclick:()=>openPicker(newScenario(),true)});
+  addBtn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Crear escenario comparativo';
+  hb.appendChild(addBtn);
+  if(STATE.scenarios.length){
+    hb.appendChild(h('button',{class:'btn sm',onclick:()=>{STATE.tab='compare';render();}},'Ver comparativo →'));
+    hb.appendChild(h('button',{class:'btn sm gh dgr',onclick:()=>{
+      if(confirm('¿Borrar los '+STATE.scenarios.length+' escenarios?')){STATE.scenarios=[];save();render();}}},'Borrar todos'));
+  }
+  head.appendChild(hb); root.appendChild(head);
+
+  root.appendChild(secTitle('Baseline y escenarios'));
+  const g=h('div',{class:'scards'});
+
+  // tarjeta baseline
+  const bc=h('div',{class:'scard',style:'--sc:'+cssv('--s1')});
+  bc.innerHTML='<div class="bar"></div>';
+  const bi=h('div',{class:'in'});
+  bi.innerHTML='<div class="hd"><span class="nm">'+esc(STATE.baseName||'Baseline')+'</span>'+
+      '<span class="ochip" style="background:var(--brand-soft);border-color:var(--brand-line);color:var(--brand)">BASE</span></div>'+
+    '<div class="nt">Referencia fija. Todos los deltas se miden contra este P&amp;L.</div>'+
+    '<div class="mt"><div><div class="k">CM con Ads / orden</div><div class="v" style="color:'+(bm.ue.cmAds>=0?'var(--pos)':'var(--neg)')+'">'+mxn(bm.ue.cmAds,2)+'</div></div>'+
+      '<div><div class="k">CM · '+esc(PERIODS[STATE.period].l.toLowerCase())+'</div><div class="v">'+big(bm.tot.cmAds)+'</div></div></div>'+
+    '<div class="ov"><span class="ochip">TR <b>'+pct(bm.ue.contractTR,2)+'</b></span><span class="ochip">R Burn <b>'+pct(bm.ue.rburnPctGmv,1)+'</b></span>'+
+      '<span class="ochip">TED <b>'+pct(bm.ue.tedPctGmv,1)+'</b></span><span class="ochip">Órdenes/día <b>'+bigN(bm.tot.dailyOrders)+'</b></span></div>';
+  const ba=h('div',{class:'ax'});
+  ba.appendChild(h('button',{class:'btn sm',onclick:()=>{STATE.tab='baseline';render();}},'Editar baseline'));
+  bi.appendChild(ba); bc.appendChild(bi); g.appendChild(bc);
+
+  // escenarios
+  STATE.scenarios.forEach((sc,idx)=>{
+    const m=mScen(sc), col=cssv(SERIES[sc.colorIdx%SERIES.length]);
+    const d=h('div',{class:'scard',style:'--sc:'+col});
+    d.innerHTML='<div class="bar"></div>';
+    const inn=h('div',{class:'in'});
+    const dCM=m.ue.cmAds-bm.ue.cmAds, dTot=m.tot.cmAds-bm.tot.cmAds;
+    const chips=Object.keys(sc.ov).map(k=>{
+      const V=VARS[k]; if(!V) return '';
+      const d0=STATE.base[k]||0, d1=sc.ov[k];
+      const arrow = d1>d0? '↑' : (d1<d0? '↓':'=');
+      return '<span class="ochip">'+esc(V.l)+' '+arrow+' <b>'+fmtVar(k,d1)+'</b></span>';
+    }).join('') || '<span class="ochip" style="opacity:.6">Sin cambios · idéntico al baseline</span>';
+    inn.innerHTML='<div class="hd"><span class="nm">'+esc(sc.name)+'</span></div>'+
+      '<div class="nt">'+(sc.note? esc(sc.note) : '<span style="opacity:.55">Sin nota</span>')+'</div>'+
+      '<div class="mt"><div><div class="k">CM con Ads / orden</div><div class="v" style="color:'+(m.ue.cmAds>=0?'var(--pos)':'var(--neg)')+'">'+mxn(m.ue.cmAds,2)+
+        '</div><span class="tag '+(dCM>=0?'up':'dn')+'">'+signed(dCM,v=>mxn(v,2))+'</span></div>'+
+        '<div><div class="k">CM · '+esc(PERIODS[STATE.period].l.toLowerCase())+'</div><div class="v">'+big(m.tot.cmAds)+
+        '</div><span class="tag '+(dTot>=0?'up':'dn')+'">'+signed(dTot,big)+'</span></div></div>'+
+      '<div class="ov">'+chips+'</div>';
+    const ax=h('div',{class:'ax'});
+    ax.appendChild(h('button',{class:'btn sm',onclick:()=>openEditor(sc)},'Editar'));
+    ax.appendChild(h('button',{class:'btn sm',onclick:()=>openPicker(sc,false)},'Variables'));
+    ax.appendChild(h('button',{class:'btn sm gh',title:'Duplicar',onclick:()=>{
+      const c=JSON.parse(JSON.stringify(sc)); c.id=uid(); c.name=sc.name+' (copia)';
+      c.colorIdx=(STATE.scenarios.length+1)%SERIES.length;
+      STATE.scenarios.splice(idx+1,0,c); save(); render();}},'⧉'));
+    ax.appendChild(h('button',{class:'btn sm gh dgr',title:'Eliminar',onclick:()=>{
+      if(confirm('¿Eliminar "'+sc.name+'"?')){STATE.scenarios.splice(idx,1);save();render();}}},'✕'));
+    inn.appendChild(ax); d.appendChild(inn); g.appendChild(d);
+  });
+
+  const add=h('button',{class:'addcard',onclick:()=>openPicker(newScenario(),true)});
+  add.innerHTML='<div class="pl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>'+
+    'Nuevo escenario<small>Eliges qué variables impactar, las editas, y queda guardado con su delta.</small>';
+  g.appendChild(add);
+  root.appendChild(g);
+
+  if(STATE.scenarios.length){
+    root.appendChild(secTitle('Vista rápida · CM por orden'));
+    const c=h('div',{class:'card'}); const b=h('div',{class:'card-b'}); const host=h('div');
+    b.appendChild(host); c.appendChild(b); root.appendChild(c);
+    const entries=[{name:STATE.baseName||'Baseline',m:bm,color:cssv('--s1')}]
+      .concat(STATE.scenarios.map(s=>({name:s.name,m:mScen(s),color:cssv(SERIES[s.colorIdx%SERIES.length])})));
+    chartGrouped(host,['Business Income','Business Costs','CM con Ads','TED'],
+      entries.map(e=>({name:e.name,color:e.color,values:[e.m.ue.businessIncome,e.m.ue.businessCost,e.m.ue.cmAds,e.m.ue.ted]})),
+      {height:280,fmt:v=>nf(v,1),tipFmt:v=>mxn(v,2),padL:52});
+    const lg=h('div',{class:'legend'});
+    entries.forEach(e=> lg.appendChild(h('span',null,'<i style="background:'+e.color+'"></i>'+esc(e.name))));
+    b.appendChild(lg);
+    b.appendChild(h('div',{class:'note',style:'margin-top:14px'},
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/></svg>'+
+      '<div>Valores en <b>MXN por orden</b>. Un escenario con mejor CM unitario puede ser peor en total si cede volumen — revísalo en el tab <b>Comparativo</b>.</div>'));
+  }
+}
+
+/* ============================================================================
+   11. DRAWER · selector de variables + editor
+   ============================================================================ */
+const OVL=$('#ovl'), DRAWER=$('#drawer');
+function drawerOpen(){ OVL.classList.add('on'); DRAWER.classList.add('on'); }
+function drawerClose(){ OVL.classList.remove('on'); DRAWER.classList.remove('on'); STATE.editing=null; }
+OVL.addEventListener('click',drawerClose);
+$('#drClose').addEventListener('click',drawerClose);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') drawerClose(); });
+
+function openPicker(sc,isNew){
+  const work=JSON.parse(JSON.stringify(sc));
+  const sel=new Set(Object.keys(work.ov));
+  $('#drTitle').textContent = isNew? 'Nuevo escenario' : 'Variables de "'+sc.name+'"';
+  $('#drSub').textContent   = '¿Qué vas a impactar? Lo que no marques hereda del baseline.';
+  const body=$('#drBody'); body.innerHTML='';
+  const keys=varsFor(STATE.mode);
+
+  const counter=h('div',{class:'note',style:'margin-top:14px;position:sticky;top:0;z-index:2'});
+  body.appendChild(counter);
+  function syncCount(){
+    counter.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>'+
+      '<div><b>'+sel.size+'</b> variable'+(sel.size===1?'':'s')+' seleccionada'+(sel.size===1?'':'s')+'. '+
+      (sel.size? 'En el siguiente paso defines el valor de cada una.' : 'Marca al menos una para que el escenario diga algo.')+'</div>';
+    cont.disabled = sel.size===0;
+  }
+  Object.keys(GROUPS).forEach(g=>{
+    const ks=keys.filter(k=>VARS[k].g===g); if(!ks.length) return;
+    const gd=h('div',{class:'vgroup'});
+    gd.innerHTML='<h4>'+esc(GROUPS[g].l)+'<span class="ln"></span></h4><p>'+esc(GROUPS[g].d)+'</p>';
+    ks.forEach(k=>{
+      const V=VARS[k], on=sel.has(k);
+      const p=h('button',{class:'pick'+(on?' on':'')});
+      p.innerHTML='<span class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span>'+
+        '<span class="tx"><b>'+esc(V.l)+(V.warn?' <span style="color:var(--warn)">▲</span>':'')+'</b><span>'+esc(V.d||'')+'</span></span>'+
+        '<span class="cur">'+fmtVar(k,STATE.base[k]||0)+'</span>';
+      p.addEventListener('click',()=>{
+        if(sel.has(k)){sel.delete(k);p.classList.remove('on');}
+        else{sel.add(k);p.classList.add('on');}
+        syncCount();
+      });
+      gd.appendChild(p);
+    });
+    body.appendChild(gd);
+  });
+  const foot=$('#drFoot'); foot.innerHTML='';
+  foot.appendChild(h('button',{class:'btn',onclick:drawerClose},'Cancelar'));
+  const cont=h('button',{class:'btn pri',onclick:()=>{
+    const ov={};
+    sel.forEach(k=> ov[k] = (work.ov[k]!=null? work.ov[k] : (STATE.base[k]||0)));
+    work.ov=ov; openEditor(work,isNew);
+  }},'Continuar →');
+  foot.appendChild(cont);
+  syncCount();
+  drawerOpen();
+}
+
+function openEditor(sc,isNew){
+  const work=JSON.parse(JSON.stringify(sc));
+  if(isNew===undefined) isNew = !STATE.scenarios.some(s=>s.id===sc.id);
+  $('#drTitle').textContent = isNew? 'Definir escenario' : 'Editar escenario';
+  $('#drSub').textContent   = 'Mueve las variables y observa el impacto en vivo.';
+  const body=$('#drBody');
+
+  function paint(){
+    body.innerHTML='';
+    const m=model(Object.assign({},STATE.base,work.ov),STATE.mode,STATE.days);
+    const bm=mBase();
+    const dU=m.ue.cmAds-bm.ue.cmAds, dT=m.tot.cmAds-bm.tot.cmAds;
+
+    const live=h('div',{class:'kpis',style:'margin-top:14px;grid-template-columns:1fr 1fr'});
+    live.appendChild(kpiTile('CM con Ads / orden',mxn(m.ue.cmAds,2),'',
+      '<span class="tag '+(dU>=0?'up':'dn')+'">'+signed(dU,v=>mxn(v,2))+'</span><span>base '+mxn(bm.ue.cmAds,2)+'</span>',
+      dU>=0?'var(--pos)':'var(--neg)'));
+    live.appendChild(kpiTile('CM · '+PERIODS[STATE.period].l.toLowerCase(),big(m.tot.cmAds),'',
+      '<span class="tag '+(dT>=0?'up':'dn')+'">'+signed(dT,big)+'</span><span>base '+big(bm.tot.cmAds)+'</span>',
+      dT>=0?'var(--pos)':'var(--neg)'));
+    body.appendChild(live);
+
+    const meta=h('div',{class:'vgroup'});
+    meta.innerHTML='<h4>Identidad<span class="ln"></span></h4>';
+    const nf1=h('div',{class:'field'});
+    nf1.innerHTML='<div class="fh"><span class="fl">Nombre</span></div>';
+    const ni=h('input',{type:'text',value:work.name}); ni.addEventListener('input',e=>work.name=e.target.value);
+    nf1.appendChild(ni); meta.appendChild(nf1);
+    const nf2=h('div',{class:'field'});
+    nf2.innerHTML='<div class="fh"><span class="fl">Nota</span><span class="fu">opcional</span></div>';
+    const n2=h('input',{type:'text',value:work.note,placeholder:'ej. Contrapropuesta de la marca, ronda 2'});
+    n2.addEventListener('input',e=>work.note=e.target.value);
+    nf2.appendChild(n2); meta.appendChild(nf2);
+    const nf3=h('div',{class:'field'});
+    nf3.innerHTML='<div class="fh"><span class="fl">Color</span></div>';
+    const sw=h('div',{class:'swatches'});
+    SERIES.forEach((s,i)=>{ const b=h('button',{class:'swatch'+(work.colorIdx===i?' on':''),style:'background:'+cssv(s),
+      onclick:()=>{work.colorIdx=i;paint();},'aria-label':'Color '+(i+1)}); sw.appendChild(b); });
+    nf3.appendChild(sw); meta.appendChild(nf3);
+    body.appendChild(meta);
+
+    const keys=Object.keys(work.ov);
+    Object.keys(GROUPS).forEach(g=>{
+      const ks=keys.filter(k=>VARS[k]&&VARS[k].g===g); if(!ks.length) return;
+      const gd=h('div',{class:'vgroup'});
+      gd.innerHTML='<h4>'+esc(GROUPS[g].l)+'<span class="ln"></span></h4>';
+      ks.forEach(k=>{
+        const row=fieldRow(k,work.ov[k],v=>{ work.ov[k]=v; repaintLive(); },{desc:false,baseHint:STATE.base[k]||0,cls:'edrow'});
+        const rm=h('button',{class:'btn sm gh',style:'margin-top:8px',onclick:()=>{delete work.ov[k];paint();}},'Quitar del escenario');
+        row.appendChild(rm);
+        gd.appendChild(row);
+      });
+      body.appendChild(gd);
+    });
+
+    const more=h('button',{class:'btn',style:'width:100%;margin-top:18px',onclick:()=>openPicker(work,isNew)},'+ Agregar o quitar variables');
+    body.appendChild(more);
+
+    function repaintLive(){
+      const mm=model(Object.assign({},STATE.base,work.ov),STATE.mode,STATE.days);
+      const du=mm.ue.cmAds-bm.ue.cmAds, dt=mm.tot.cmAds-bm.tot.cmAds;
+      const t=live.children;
+      t[0].querySelector('.vl').textContent=mxn(mm.ue.cmAds,2);
+      t[0].style.setProperty('--accent',du>=0?'var(--pos)':'var(--neg)');
+      t[0].querySelector('.sb').innerHTML='<span class="tag '+(du>=0?'up':'dn')+'">'+signed(du,v=>mxn(v,2))+'</span><span>base '+mxn(bm.ue.cmAds,2)+'</span>';
+      t[1].querySelector('.vl').textContent=big(mm.tot.cmAds);
+      t[1].style.setProperty('--accent',dt>=0?'var(--pos)':'var(--neg)');
+      t[1].querySelector('.sb').innerHTML='<span class="tag '+(dt>=0?'up':'dn')+'">'+signed(dt,big)+'</span><span>base '+big(bm.tot.cmAds)+'</span>';
+    }
+  }
+  paint();
+  const foot=$('#drFoot'); foot.innerHTML='';
+  foot.appendChild(h('button',{class:'btn',onclick:drawerClose},'Cancelar'));
+  foot.appendChild(h('button',{class:'btn pri',onclick:()=>{
+    const i=STATE.scenarios.findIndex(s=>s.id===work.id);
+    if(i>=0) STATE.scenarios[i]=work; else STATE.scenarios.push(work);
+    save(); drawerClose(); STATE.tab='scenarios'; render();
+  }},isNew?'Guardar escenario':'Guardar cambios'));
+  drawerOpen();
+}
+
+/* ============================================================================
+   12. TAB · COMPARATIVO
+   ============================================================================ */
+function entriesAll(){
+  return [{name:STATE.baseName||'Baseline',m:mBase(),color:cssv('--s1'),base:true}]
+    .concat(STATE.scenarios.map(s=>({name:s.name,m:mScen(s),color:cssv(SERIES[s.colorIdx%SERIES.length]),sc:s})));
+}
+/* atribución secuencial: suma exacta al delta total */
+function attribution(sc){
+  const keys=Object.keys(sc.ov);
+  let p=Object.assign({},STATE.base);
+  let prev=model(p,STATE.mode,STATE.days);
+  const out=[];
+  keys.forEach(k=>{
+    p=Object.assign({},p); p[k]=sc.ov[k];
+    const now=model(p,STATE.mode,STATE.days);
+    out.push({key:k,label:VARS[k]?VARS[k].l:k, dUnit:now.ue.cmAds-prev.ue.cmAds, dTot:now.tot.cmAds-prev.tot.cmAds});
+    prev=now;
+  });
+  return out;
+}
+function renderCompare(){
+  const root=$('#tab-compare'); root.innerHTML='';
+  if(!STATE.scenarios.length){
+    const c=h('div',{class:'card'});
+    c.innerHTML='<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/></svg>'+
+      '<p>Todavía no hay escenarios que comparar. Crea el primero desde el tab <b>Escenarios</b>.</p></div>';
+    const b=h('div',{class:'card-b',style:'text-align:center;padding-top:0'});
+    b.appendChild(h('button',{class:'btn pri',onclick:()=>{STATE.tab='scenarios';render();}},'Ir a Escenarios'));
+    c.appendChild(b); root.appendChild(c); return;
+  }
+  const E=entriesAll(), bm=E[0].m;
+
+  /* barras de KPIs */
+  const ctl=h('div',{class:'card'});
+  ctl.innerHTML='<div class="card-h"><div style="flex:1"><h3>Comparativo de escenarios</h3><p>Baseline contra cada alternativa. Cambia la base para ver el unit economics puro o el impacto total del periodo.</p></div></div>';
+  const cb=h('div',{class:'card-b',style:'padding-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center'});
+  const sg=h('div',{class:'seg'});
+  [['unit','Por orden'],['total','Total del periodo']].forEach(([k,l])=>
+    sg.appendChild(h('button',{class:STATE.cmpBasis===k?'on':'',onclick:()=>{STATE.cmpBasis=k;render();}},l)));
+  cb.appendChild(sg); cb.appendChild(periodSeg());
+  ctl.appendChild(cb); root.appendChild(ctl);
+
+  const unit=STATE.cmpBasis==='unit';
+  const pick=m=> unit? m.ue : m.tot;
+  const F = unit? (v=>nf(v,1)) : (v=>bigN(v));
+  const TF= unit? (v=>mxn(v,2)) : (v=>big(v));
+
+  root.appendChild(secTitle('KPIs clave'));
+  const two0=h('div',{class:'two'});
+  function kpiChart(title,sub,cats,getter){
+    const c=h('div',{class:'card'});
+    c.innerHTML='<div class="card-h"><div style="flex:1"><h3>'+esc(title)+'</h3><p>'+sub+'</p></div></div>';
+    const b=h('div',{class:'card-b'}); const ho=h('div'); b.appendChild(ho); c.appendChild(b);
+    two0.appendChild(c);
+    chartGrouped(ho,cats,E.map(e=>({name:e.name,color:e.color,values:getter(pick(e.m))})),
+      {height:290,fmt:F,tipFmt:TF,padL:58});
+    const l=h('div',{class:'legend'}); E.forEach(e=>l.appendChild(h('span',null,'<i style="background:'+e.color+'"></i>'+esc(e.name)))); b.appendChild(l);
+  }
+  kpiChart('Economía de DiDi','Lo que entra, lo que cuesta y lo que queda.',
+    ['Business Income','Business Costs','CM con Ads'], v=>[v.businessIncome,v.businessCost,v.cmAds]);
+  kpiChart('Lado de la marca y del usuario','Escala distinta a la izquierda: '+"Brand's Income"+' se mide contra el AOP, no contra el margen.',
+    ["Brand's Income",'TED','Take Rate Income'], v=>[v.brandIncome,v.ted,v.tri]);
+  root.appendChild(two0);
+
+  /* frontera de negociación */
+  root.appendChild(secTitle('Frontera de negociación · TED vs CM'));
+  const c2=h('div',{class:'card'});
+  c2.innerHTML='<div class="card-h"><div style="flex:1"><h3>¿Cuánto descuento estás comprando por cada punto de margen?</h3>'+
+    '<p>Eje X: TED como % del GMV (todo el descuento que ve el usuario). Eje Y: CM con Ads como % del GMV. Arriba y a la izquierda es mejor deal.</p></div></div>';
+  const b2=h('div',{class:'card-b'}); const host2=h('div'); b2.appendChild(host2); c2.appendChild(b2); root.appendChild(c2);
+  chartScatter(host2,E.map(e=>({name:e.name,color:e.color,x:e.m.ue.tedPctGmv,y:e.m.ue.cmAdsPctGmv})),
+    {height:300,xl:'TED / GMV',yl:'CM con Ads / GMV'});
+
+  /* bridge de atribución */
+  root.appendChild(secTitle('De dónde viene el delta'));
+  STATE.scenarios.forEach(sc=>{
+    const at=attribution(sc), m=mScen(sc);
+    const col=cssv(SERIES[sc.colorIdx%SERIES.length]);
+    const c=h('div',{class:'card',style:'margin-bottom:16px'});
+    const dv = unit? m.ue.cmAds-bm.ue.cmAds : m.tot.cmAds-bm.tot.cmAds;
+    const volOv = Object.keys(sc.ov).some(k=>VARS[k]&&VARS[k].g==='vol');
+    c.innerHTML='<div class="card-h"><div style="flex:1"><h3><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:'+col+';margin-right:8px"></span>'+esc(sc.name)+'</h3>'+
+      '<p>'+(sc.note?esc(sc.note)+' · ':'')+'Delta total <b style="color:'+(dv>=0?'var(--pos)':'var(--neg)')+'">'+signed(dv,unit?(v=>mxn(v,2)):big)+'</b> vs baseline. Cada barra es el efecto marginal de esa variable en el orden en que se aplica.'+
+      (unit&&volOv? ' <b style="color:var(--warn)">Las variables de volumen salen en cero aquí</b> porque no cambian el CM <i>por orden</i>: cambia a <b>Total del periodo</b> para verlas.':'')+'</p></div></div>';
+    const b=h('div',{class:'card-b'}); const host=h('div'); b.appendChild(host); c.appendChild(b); root.appendChild(c);
+    const items=[{label:'Baseline',value: unit?bm.ue.cmAds:bm.tot.cmAds,kind:'abs',color:cssv('--s1')}]
+      .concat(at.map(a=>({label:a.label,value: unit?a.dUnit:a.dTot,kind:'delta'})))
+      .concat([{label:sc.name,value: unit?m.ue.cmAds:m.tot.cmAds,kind:'total',color:col}]);
+    chartWaterfall(host,items,{height:300,fmt: unit?(v=>mxn(v,2)):big, maxBar:58});
+  });
+
+  /* tabla comparativa */
+  root.appendChild(secTitle('P&L comparativo completo'));
+  const c3=h('div',{class:'card'});
+  c3.innerHTML='<div class="card-h"><div style="flex:1"><h3>Línea por línea</h3><p>Base: <b>'+(unit?'MXN por orden':'total del '+PERIODS[STATE.period].l.toLowerCase())+'</b>. El chip bajo cada número es el delta contra baseline, con el color según si te conviene.</p></div></div>';
+  const hd3=c3.querySelector('.card-h'); hd3.appendChild(csvBtn(E,STATE.cmpBasis));
+  const b3=h('div',{class:'card-b'}); b3.appendChild(pnlTable(E,false)); c3.appendChild(b3); root.appendChild(c3);
+}
+
+/* scatter (frontera) */
+function chartScatter(host,pts,opt){
+  opt=opt||{}; const W=CW(host),H=opt.height||300,PL=58,PR=24,PT=20,PB=44;
+  const svg=mount(host,W,H);
+  let xlo=Math.min.apply(null,pts.map(p=>p.x)), xhi=Math.max.apply(null,pts.map(p=>p.x));
+  let ylo=Math.min.apply(null,pts.map(p=>p.y)), yhi=Math.max.apply(null,pts.map(p=>p.y));
+  const xp=(xhi-xlo||0.05)*0.28, yp=(yhi-ylo||0.03)*0.35;
+  xlo-=xp;xhi+=xp;ylo-=yp;yhi+=yp;
+  const X=v=>PL+(W-PL-PR)*(v-xlo)/(xhi-xlo), Y=v=>PT+(H-PT-PB)*(1-(v-ylo)/(yhi-ylo));
+  for(let t=0;t<=4;t++){
+    const yv=ylo+(yhi-ylo)*t/4, xv=xlo+(xhi-xlo)*t/4;
+    svg.appendChild(el('line',{x1:PL,x2:W-PR,y1:Y(yv),y2:Y(yv),stroke:'var(--grid)','stroke-width':1}));
+    svg.appendChild(txt(PL-8,Y(yv)+3.5,pct(yv,1),{'text-anchor':'end','font-size':10}));
+    svg.appendChild(txt(X(xv),H-PB+17,pct(xv,1),{'text-anchor':'middle','font-size':10}));
+  }
+  if(ylo<0&&yhi>0) svg.appendChild(el('line',{x1:PL,x2:W-PR,y1:Y(0),y2:Y(0),stroke:'var(--axis)','stroke-width':1.5}));
+  svg.appendChild(txt(W-PR,H-6,opt.xl||'',{'text-anchor':'end','font-size':10.5,'font-weight':700}));
+  svg.appendChild(txt(PL-46,PT-6,opt.yl||'',{'font-size':10.5,'font-weight':700}));
+  const placed=[];
+  pts.forEach(p=>{
+    const px=X(p.x), py=Y(p.y);
+    const c=el('circle',{cx:px,cy:py,r:8,fill:p.color,stroke:'var(--surface)','stroke-width':2});
+    hov(c,'<div class="tt">'+esc(p.name)+'</div>'+tipRow(p.color,'TED / GMV',pct(p.x,2))+tipRow(p.color,'CM / GMV',pct(p.y,2)));
+    svg.appendChild(c);
+    // evita que dos etiquetas se encimen cuando los puntos coinciden
+    let ly=py+4, tries=0;
+    while(placed.some(q=>Math.abs(q.x-px)<120 && Math.abs(q.y-ly)<14) && tries<8){ ly+=15; tries++; }
+    placed.push({x:px,y:ly});
+    const right = px < W-PR-110;
+    svg.appendChild(txt(right? px+12 : px-12, ly, p.name,
+      {'text-anchor':right?'start':'end','font-size':10.5,'font-weight':650,fill:'var(--ink-2)'}));
+    if(Math.abs(ly-(py+4))>6)
+      svg.appendChild(el('line',{x1:px,y1:py,x2:right?px+9:px-9,y2:ly-3,stroke:'var(--axis)','stroke-width':1}));
+  });
+  return svg;
+}
+
+/* ============================================================================
+   13. TAB · PROYECCIONES
+   ============================================================================ */
+function project(p,mode,cfg){
+  const M=cfg.horizon, DPM=30.4;
+  const base = mode==='store' ? (p.stores||0)*(p.ordersStoreDay||0) : (p.dailyOrders||0)*1000;
+  const mm = model(p,mode,DPM);           // unit economics (constante en el horizonte)
+  const invTot=(p.signOn||0)+(p.mktExp||0)+(p.warranty||0);
+  const rows=[]; let cum=0, payback=null, cohorts=[];
+  for(let i=0;i<M;i++){
+    const m=i+1;
+    const rampMult = m<=cfg.rampMonths
+      ? cfg.rampStart + (1-cfg.rampStart)*(cfg.rampMonths<=1?1:(m-1)/(cfg.rampMonths-1))
+      : 1;
+    const g = Math.pow(1+cfg.growth, Math.max(0,m-cfg.rampMonths));
+    let daily = base*rampMult*g;
+    let newStores=0;
+    if(mode==='store' && cfg.newPerMonth>0){
+      cohorts.push(m);
+      newStores = cohorts.length*cfg.newPerMonth;
+      cohorts.forEach(j=>{
+        const prod=Math.min(1,(m-j+1)/Math.max(1,cfg.rampUpMonths));
+        daily += cfg.newPerMonth*(p.ordersStoreDay||0)*prod*g;
+      });
+    }
+    const orders=daily*DPM;
+    const cm = mm.ue.cmAds*orders;
+    const gmv= mm.ue.gmv*orders;
+    const inv = invTot? (cfg.investMode==='upfront' ? (m===1?invTot:0) : invTot/M) : 0;
+    const net = cm-inv;
+    cum+=net;
+    if(payback===null && cum>=0 && invTot>0) payback=m;
+    rows.push({m:m,label:'M'+m,daily:daily,orders:orders,gmv:gmv,cm:cm,inv:inv,net:net,cum:cum,
+               stores:(p.stores||0)+newStores});
+  }
+  return {rows:rows,payback:payback,ue:mm.ue,invTot:invTot,
+          totals:{orders:rows.reduce((a,r)=>a+r.orders,0), gmv:rows.reduce((a,r)=>a+r.gmv,0),
+                  cm:rows.reduce((a,r)=>a+r.cm,0), net:cum}};
+}
+function renderProjections(){
+  const root=$('#tab-projections'); root.innerHTML='';
+  const cfg=STATE.proj;
+  const runs=[{name:STATE.baseName||'Baseline',color:cssv('--s1'),p:STATE.base}]
+    .concat(STATE.scenarios.map(s=>({name:s.name,color:cssv(SERIES[s.colorIdx%SERIES.length]),p:paramsOf(s)})))
+    .map(r=>Object.assign(r,{pr:project(r.p,STATE.mode,cfg)}));
+  const B=runs[0].pr;
+
+  /* controles */
+  const c0=h('div',{class:'card'});
+  c0.innerHTML='<div class="card-h"><div style="flex:1"><h3>Supuestos de proyección</h3>'+
+    '<p>El unit economics se mantiene constante y lo que se proyecta es el volumen. Si esperas que el take rate o los burns cambien en el tiempo, modela eso como un escenario aparte.</p></div></div>';
+  const b0=h('div',{class:'card-b'});
+  const grid=h('div',{class:'three'});
+  function ctl(label,unit,desc,min,max,step,val,onc,fmt){
+    const f=h('div',{class:'field'});
+    f.innerHTML='<div class="fh"><span class="fl">'+esc(label)+'</span><span class="fu">'+esc(unit)+'</span></div>'+
+      '<div class="fd">'+esc(desc)+'</div>';
+    const c=h('div',{class:'ctrl'});
+    const rg=h('input',{type:'range',min:min,max:max,step:step,value:val});
+    const nb=h('input',{type:'number',min:min,max:max,step:step,value:val});
+    rg.addEventListener('input',e=>{nb.value=e.target.value;onc(Number(e.target.value));});
+    nb.addEventListener('input',e=>{if(e.target.value==='')return;rg.value=e.target.value;onc(Number(e.target.value));});
+    c.appendChild(rg);c.appendChild(nb);f.appendChild(c);return f;
+  }
+  const colA=h('div'),colB=h('div'),colC=h('div');
+  colA.appendChild(ctl('Horizonte','meses','Cuántos meses proyecta el modelo.',6,48,1,cfg.horizon,v=>{cfg.horizon=v;softRender();}));
+  colA.appendChild(ctl('Crecimiento mensual','% m/m','Se aplica una vez terminado el ramp-up inicial.',-3,8,0.05,+(cfg.growth*100).toFixed(2),v=>{cfg.growth=v/100;softRender();}));
+  colB.appendChild(ctl('Ramp-up del deal','meses','Meses hasta llegar al volumen pleno del baseline.',0,12,1,cfg.rampMonths,v=>{cfg.rampMonths=v;softRender();}));
+  colB.appendChild(ctl('Volumen en el mes 1','% del baseline','Dónde arranca la curva de ramp-up.',10,100,5,Math.round(cfg.rampStart*100),v=>{cfg.rampStart=v/100;softRender();}));
+  if(STATE.mode==='store'){
+    colC.appendChild(ctl('Aperturas por mes','tiendas','Nuevas sedes que entran cada mes.',0,50,1,cfg.newPerMonth,v=>{cfg.newPerMonth=v;softRender();}));
+    colC.appendChild(ctl('Ramp-up de tienda nueva','meses','Meses hasta que una sede nueva alcanza la productividad plena.',1,12,1,cfg.rampUpMonths,v=>{cfg.rampUpMonths=v;softRender();}));
+  } else {
+    const f=h('div',{class:'field'});
+    f.innerHTML='<div class="fh"><span class="fl">Inversión del deal</span><span class="fu">MXN</span></div>'+
+      '<div class="fd">Sign-on + marketing + warranty configurados en el baseline.</div>'+
+      '<div style="font-size:22px;font-weight:700;margin-top:6px">'+big(B.invTot)+'</div>';
+    colC.appendChild(f);
+  }
+  const fi=h('div',{class:'field'});
+  fi.innerHTML='<div class="fh"><span class="fl">Cómo cargar la inversión</span></div><div class="fd">Upfront la pega toda en el mes 1; prorrateada la reparte en el horizonte.</div>';
+  const seg=h('div',{class:'seg',style:'margin-top:8px'});
+  [['spread','Prorrateada'],['upfront','Upfront M1']].forEach(([k,l])=>
+    seg.appendChild(h('button',{class:cfg.investMode===k?'on':'',onclick:()=>{cfg.investMode=k;save();render();}},l)));
+  fi.appendChild(seg); colC.appendChild(fi);
+  grid.appendChild(colA);grid.appendChild(colB);grid.appendChild(colC);
+  b0.appendChild(grid); c0.appendChild(b0); root.appendChild(c0);
+
+  /* KPIs del horizonte */
+  const kp=h('div',{class:'kpis',style:'margin-top:16px'});
+  kp.appendChild(kpiTile('CM acumulado',big(B.totals.cm),'',cfg.horizon+' meses · baseline','var(--s1)'));
+  kp.appendChild(kpiTile('Resultado neto',big(B.totals.net),'',
+    B.invTot? 'después de '+big(B.invTot)+' de inversión' : 'sin inversión de deal',
+    B.totals.net>=0?'var(--pos)':'var(--neg)'));
+  kp.appendChild(kpiTile('Órdenes del horizonte',bigN(B.totals.orders),'',
+    'GMV '+big(B.totals.gmv),'var(--s3)'));
+  kp.appendChild(kpiTile('Payback', B.invTot? (B.payback? 'M'+B.payback : 'No paga') : '—','',
+    B.invTot? (B.payback? 'mes en que el acumulado cruza cero':'el acumulado no cruza cero en el horizonte') : 'sin inversión que recuperar',
+    B.payback?'var(--pos)':(B.invTot?'var(--neg)':'var(--s5)')));
+  kp.appendChild(kpiTile('Órdenes / día al final',bigN(B.rows[B.rows.length-1].daily),'',
+    'vs '+bigN(B.rows[0].daily)+' en M1','var(--s2)'));
+  root.appendChild(kp);
+
+  /* trayectoria de volumen */
+  root.appendChild(secTitle('Trayectoria de volumen'));
+  const c1=h('div',{class:'card'});
+  c1.innerHTML='<div class="card-h"><div style="flex:1"><h3>Órdenes por día</h3><p>Ramp-up del deal'+(STATE.mode==='store'&&cfg.newPerMonth?' más la contribución de las aperturas con su propia curva de productividad':'')+'.</p></div></div>';
+  const b1=h('div',{class:'card-b'}); const h1=h('div'); b1.appendChild(h1); c1.appendChild(b1); root.appendChild(c1);
+  chartLines(h1,B.rows.map(r=>r.label),
+    runs.map((r,i)=>({name:r.name,color:r.color,values:r.pr.rows.map(x=>x.daily),area:i===0})),
+    {height:280,fmt:v=>bigN(v),tipFmt:v=>bigN(v)+' órd/día'});
+  const lg1=h('div',{class:'legend'}); runs.forEach(r=>lg1.appendChild(h('span',null,'<i style="background:'+r.color+'"></i>'+esc(r.name)))); b1.appendChild(lg1);
+
+  /* CM mensual + acumulado */
+  const two=h('div',{class:'two',style:'margin-top:16px'});
+  const c2=h('div',{class:'card'});
+  c2.innerHTML='<div class="card-h"><div style="flex:1"><h3>CM con Ads mensual</h3><p>Resultado del mes, antes de la inversión del deal.</p></div></div>';
+  const b2=h('div',{class:'card-b'}); const h2=h('div'); b2.appendChild(h2); c2.appendChild(b2); two.appendChild(c2);
+  const c3=h('div',{class:'card'});
+  c3.innerHTML='<div class="card-h"><div style="flex:1"><h3>Resultado acumulado</h3><p>CM menos inversión, mes a mes. Donde cruza la línea de cero, el deal se pagó.</p></div></div>';
+  const b3=h('div',{class:'card-b'}); const h3e=h('div'); b3.appendChild(h3e); c3.appendChild(b3); two.appendChild(c3);
+  root.appendChild(two);
+  chartLines(h2,B.rows.map(r=>r.label),runs.map((r,i)=>({name:r.name,color:r.color,values:r.pr.rows.map(x=>x.cm),area:i===0})),
+    {height:270,fmt:v=>bigN(v),tipFmt:big,padL:56});
+  chartLines(h3e,B.rows.map(r=>r.label),runs.map(r=>({name:r.name,color:r.color,values:r.pr.rows.map(x=>x.cum)})),
+    {height:270,fmt:v=>bigN(v),tipFmt:big,padL:56,marker:B.payback?B.payback-1:null,markerLabel:B.payback?'payback M'+B.payback:''});
+  [[b2,runs],[b3,runs]].forEach(([bb,rr])=>{const l=h('div',{class:'legend'});rr.forEach(r=>l.appendChild(h('span',null,'<i style="background:'+r.color+'"></i>'+esc(r.name))));bb.appendChild(l);});
+
+  /* tabla por trimestre */
+  root.appendChild(secTitle('Resumen por trimestre'));
+  const c4=h('div',{class:'card'});
+  c4.innerHTML='<div class="card-h"><div style="flex:1"><h3>Baseline y escenarios, trimestre a trimestre</h3><p>CM con Ads acumulado por trimestre del horizonte.</p></div></div>';
+  const b4=h('div',{class:'card-b'});
+  const nq=Math.ceil(cfg.horizon/3);
+  const qs=[]; for(let q=0;q<nq;q++) qs.push('Q'+(q+1));
+  const tw=h('div',{class:'tblwrap'}); const tb=h('table',{class:'pnl'});
+  let hd='<thead><tr><th>Escenario</th>'+qs.map(q=>'<th>'+q+'</th>').join('')+'<th>Total</th></tr></thead><tbody>';
+  runs.forEach((r,i)=>{
+    const vals=qs.map((_,q)=> r.pr.rows.slice(q*3,q*3+3).reduce((a,x)=>a+x.cm,0));
+    const tot=r.pr.totals.cm;
+    hd+='<tr'+(i===0?'':'')+'><td><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:'+r.color+';margin-right:7px"></span>'+esc(r.name)+'</td>'+
+      vals.map(v=>'<td class="v">'+big(v)+'</td>').join('')+'<td class="v" style="font-weight:700">'+big(tot)+'</td></tr>';
+  });
+  hd+='</tbody>';
+  tb.innerHTML=hd; tw.appendChild(tb); b4.appendChild(tw); c4.appendChild(b4); root.appendChild(c4);
+
+  root.appendChild(h('div',{class:'note',style:'margin-top:16px'},
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/></svg>'+
+    '<div>La proyección asume <b>unit economics constante</b>: el CM por orden de cada escenario no cambia con el tiempo. Lo único que se mueve es el volumen (ramp-up, crecimiento'+(STATE.mode==='store'?' y aperturas':'')+'). Es deliberado — mezclar las dos cosas hace imposible saber qué explicó el resultado.</div>'));
+}
+
+/* ============================================================================
+   14. RENDER + BOOT
+   ============================================================================ */
+function render(){
+  renderTabs();
+  ['baseline','scenarios','compare','projections'].forEach(k=>
+    $('#tab-'+k).classList.toggle('hide', STATE.tab!==k));
+  if(STATE.tab==='baseline') renderBaseline();
+  if(STATE.tab==='scenarios') renderScenarios();
+  if(STATE.tab==='compare') renderCompare();
+  if(STATE.tab==='projections') renderProjections();
+  $('#brandLbl').textContent = STATE.mode==='store'? 'Modelo a nivel tienda' : 'Modelo a nivel marca';
+  const pill=$('#modePill');
+  pill.innerHTML='<span style="width:6px;height:6px;border-radius:50%;background:var(--brand)"></span>'+
+    (STATE.mode==='store'?'Nivel Tienda':'Nivel Marca')+' <b style="margin-left:2px">↔</b>';
+}
+function setMode(m){
+  STATE.mode=m;
+  const b = m==='store'? BASE_STORE : BASE_BRAND;
+  STATE.base=Object.assign({},b); STATE.baseName=b.name;
+  STATE.scenarios=[]; STATE.tab='baseline';
+  $('#gate').classList.add('hide'); $('#top').classList.remove('hide'); $('#app').classList.remove('hide');
+  save(); render();
+}
+$$('.mode').forEach(b=> b.addEventListener('click',()=>setMode(b.dataset.mode)));
+$('#modePill').addEventListener('click',()=>{
+  const to = STATE.mode==='store'?'brand':'store';
+  if(confirm('Cambiar a nivel '+(to==='store'?'Tienda':'Marca')+' reinicia el baseline y los escenarios de este modelo. ¿Continuar?')) setMode(to);
+});
+$('#themeBtn').addEventListener('click',()=>{
+  const cur=document.documentElement.getAttribute('data-theme');
+  document.documentElement.setAttribute('data-theme', cur==='dark'?'light':'dark');
+  save(); render();
+});
+$('#resetBtn').addEventListener('click',()=>{
+  if(!confirm('Esto borra el baseline y todos los escenarios guardados. ¿Seguro?')) return;
+  try{ localStorage.removeItem('didi-deal-lab-v1'); }catch(e){}
+  location.reload();
+});
+let rz=null;
+addEventListener('resize',()=>{ clearTimeout(rz); rz=setTimeout(render,180); });
+
+if(load()){
+  $('#gate').classList.add('hide'); $('#top').classList.remove('hide'); $('#app').classList.remove('hide');
+  render();
+}
+</script>
+</body>
+</html>
